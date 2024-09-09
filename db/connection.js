@@ -1,7 +1,7 @@
 import mysql from 'mysql2/promise';
 import 'dotenv/config';
-// const db = "random_facts"
-const db = "test"
+const db = "random_facts"
+// const db = "test"
 
 // Default: Mysql 5.5 Instances
 const DBCONFIG = {
@@ -24,8 +24,6 @@ export async function executeSQL(sql) {
     return rows
   } catch(err) {
     throw err;
-  // } finally {
-    // pool.releaseConnection(conn)
   }
 }
 

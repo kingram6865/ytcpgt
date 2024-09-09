@@ -10,7 +10,7 @@ export async function videoExists(videoid) {
   let exists = false
   let sql = `SELECT count(*) as dupes FROM youtube_downloads WHERE videoid = '${videoid}'`;
   let results = await executeSQL(sql)
-  // console.log(`Video Exists: ${JSON.stringify(results)}`)
+  
   if (results[0].dupes > 0) {
     exists = true
   }
@@ -22,7 +22,7 @@ export async function channelExists(channelid) {
   let exists = false;
   let sql = `SELECT COUNT(*) as dupes FROM youtube_channel_owners WHERE channel_id = '${channelid}'`;
   let results = await executeSQL(sql);
-  // console.log(`Channel Exists: ${channelid} ${JSON.stringify(results)} ${results[0].dupes}`)
+
   if (results[0].dupes > 0) {
     exists = true
   }
