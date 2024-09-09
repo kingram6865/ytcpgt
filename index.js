@@ -29,7 +29,6 @@ function videoId(data){
   const rePattern = /=/;
   let index = rePattern.exec(data)['index'] + 1;
   let result = data.substring(index);
-  console.log(`Processing VideoId [${result}]`)
   return result;
 }
 
@@ -57,17 +56,10 @@ async function buildDataInsertion(url) {
   let videoid = videoId(url)
   let video_data = await videoData(videoid)
   let channel_data = await channelData(video_data.items[0].snippet.channelId)
-  // console.log(JSON.stringify(channel_data, null, 2))
-  // console.log(JSON.stringify(video_data, null, 2))
-  // console.log("ChannelId: ", channel_data.items[0].id, "\nsnippet ====\n", channel_data.items[0].snippet, "\nContentDetails ====\n", channel_data.items[0].contentDetails, "\nstatistics ====\n", channel_data.items[0].statistics)
-  // console.log(channel_data.items[0].snippet, channel_data.items[0].contentDetails, channel_data.items[0].statistics)
-  // console.log(video_data.items[0].snippet.channelId, JSON.stringify(channel_data, null, 2))
   let haveVideo = await videoExists(videoid)
   let haveChannel = await channelExists(video_data.items[0].snippet.channelId)
   let dbChannelInfo = await getChannel(channel_data.items[0].id)
-  // console.log("Channel Exists: ", channel_data.items[0].id, dbChannelInfo[0])
   let dbVideoInfo = await getVideo(videoid)
-  // console.log(dbChannelInfo)
 
   videoInfo = {
     keywords: video_data.items[0].snippet.tags,
@@ -107,28 +99,21 @@ async function processData(data) {
   } else if (!data.haveChannel && data.haveVideo) {
     console.log(`Check 2: Have Video: ${data.haveVideo}, Do not have Channel: ${data.haveChannel}`)
   } else if (!data.haveChannel && !data.haveVideo){
-    console.log(`Check 3: Do not have Video, Do not have Channel`)
+    console.log(`Check 3: [${colors.brightYellow}${data.videoInfo.videoid}${colors.Reset}] ${colors.brightRed}Do not have Video${colors.Reset}, ${colors.brightRed}Do not have Channel${colors.Reset}\n=====================================`)
     console.log(`${colors.greenOnBlack}Adding Channel${colors.Reset} ${data.channelInfo.channelId}, ${colors.brightBlue}${data.channelInfo.title}${colors.Reset} ${data.channelInfo.customUrl} (${colors.brightMagenta}Since ${formatDate(data.channelInfo.created, 1)}${colors.Reset})`)
     let channelInsertResults = await addChannel(data.channelInfo)
     let videoInsertResults = await addVideo(data.videoInfo, channelInsertResults.insertId)
-    console.log(`${colors.greenOnBlack}Added Video   ${colors.Reset} ${data.videoInfo.videoId}, ${colors.brightBlue}${data.videoInfo.title}${colors.Reset} [${colors.brightYellow}${data.videoInfo.duration}${colors.Reset}] ${colors.brightRed}objid: ${videoInsertResults.insertId}${colors.Reset} to Channel objid: [${colors.brightCyan}${channelInsertResults.insertId}${colors.Reset}], ${data.channelInfo.title}`)
+    console.log(`${colors.greenOnBlack}Added Video   ${colors.Reset} https://youtube.com/watch?v=${data.videoInfo.videoId}, ${colors.brightBlue}${data.videoInfo.title}${colors.Reset} [${colors.brightYellow}${data.videoInfo.duration}${colors.Reset}] objid: [${colors.brightRed}${videoInsertResults.insertId}${colors.Reset}] to Channel objid: [${colors.brightCyan}${channelInsertResults.insertId}${colors.Reset}], ${colors.brightBlue}${data.channelInfo.title}${colors.Reset}\n=====================================================================`)
   } else if (data.haveChannel && data.haveVideo){
-    console.log(`Check 4: Have Video and have Channel`)
-    console.log(data.channelInfo, data.videoInfo.title)
+    console.log(`Check 4: ${colors.brightGreen}Have Video and Channel${colors.Reset}`)
+    console.log(data.channelInfo.dbData, data.videoInfo.dbData)
   }
 
 }
 
 async function execute(input) {
-  
-  // let tables = await listTables()
-  // let dupe = (await videoExists('r8-RIMdl8Bs'))[0]
-  // console.log(tables, "\n", dupe)
   const data = await buildDataInsertion(input)
   processData(data)
-  // console.log(data.haveChannel, data.haveVideo)
-
-
 }
 
 execute(process.argv[2])
