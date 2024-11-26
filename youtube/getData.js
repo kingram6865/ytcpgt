@@ -4,7 +4,7 @@ const APIKEY = process.env.API_KEY1;
 
 export async function videoData(id) {
   let results
-  const url = `https://youtube.googleapis.com/youtube/v3/videos?part=snippet%2CcontentDetails%2Cstatistics&id=${id}&key=${APIKEY}`
+  const url = `https://youtube.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${id}&key=${APIKEY}`
   try {
     results = await axios.get(url)
   } catch (err) {
@@ -16,7 +16,7 @@ export async function videoData(id) {
 
 export async function channelData(id) {
   let results
-  const url = `https://youtube.googleapis.com/youtube/v3/channels?part=snippet%2CcontentDetails%2Cstatistics&id=${id}&key=${APIKEY}`
+  const url = `https://youtube.googleapis.com/youtube/v3/channels?part=snippet,contentDetails,statistics&id=${id}&key=${APIKEY}`
   try {
     results = await axios.get(url)
   } catch (err) {
@@ -24,4 +24,16 @@ export async function channelData(id) {
   } finally {
     return results.data
   }
+}
+
+export async function playlistItems(id) {
+  let results
+  const url = `https://youtube.googleapis.com/youtube/v3/playlistItems?maxResults=50&part=snippet,contentDetails,status&playlistId=${id}&key=${APIKEY}`
+  try {
+    results = await axios.get(url)
+  } catch (err) {
+    console.log(err)
+  } finally {
+    return results.data
+  } 
 }
