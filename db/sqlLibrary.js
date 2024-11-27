@@ -51,7 +51,6 @@ export async function addChannel(data) {
 }
 
 export async function addVideo(data, channelid) {
-  console.log("Channel ID: ", channelid)
   let keywords = (data.keywords) ? data.keywords.join(",") : ""
   let values = [keywords, data.published, data.title, data.description, data.duration, data.url, channelid, JSON.stringify(data.thumbnails)]
   let sql = `INSERT INTO youtube_downloads (keywords, upload_date, caption, description, play_length, url, channel_owner_id, thumbnail, status, rewatch) \
