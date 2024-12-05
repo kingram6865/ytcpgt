@@ -33,7 +33,7 @@ export async function channelExists(channelid) {
 export async function getChannel(channelid) {
   const sql = `SELECT * FROM youtube_channel_owners WHERE channel_id = '${channelid}'`
   let results = await executeSQL(sql)
-  return results
+  return results[0]
 }
 
 export async function getVideo(id) {
