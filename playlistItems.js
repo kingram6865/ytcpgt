@@ -5,7 +5,9 @@ import * as colors from  './utilities/consoleColors.js';
 
 async function channelExistsInDb(channel) {
   let information = await getChannel(channel);
-  let result = (information.length) ? {status: true, data: information[0]} : {status: false, data: `${channel} does not exist`}
+  // console.log("Line 8: ", Object.keys(information))
+  // console.log(information.objid)
+  let result = (information) ? {status: true, data: information} : {status: false, data: `${channel} does not exist`}
   return result
 }
 
@@ -33,9 +35,12 @@ async function processChannelInfo(channelId) {
 }
 
 async function processVideoInfo(data) {
-  let channelInfo, result, insertData 
-  channelInfo = await getChannel(data.channelId)
+  // console.log(data.channelId)
+  let channelInfo, result, insertData;
+  channelInfo = await channelExistsInDb(data.channelId);
+  // console.log("Line 41: ", channelInfo)
 
+  // console.log("Line 40: ", channelInfo)
   result = await videoData(data.videoId)
 
   insertData = {
@@ -48,7 +53,7 @@ async function processVideoInfo(data) {
     thumbnails: result.items[0].snippet.thumbnails
   }
 
-  let results = await addVideo(insertData, channelInfo[0].objid)
+  let results = await addVideo(insertData, channelInfo.data.objid)
   return results
 }
 
@@ -66,7 +71,7 @@ async function channelChecker(id) {
   let videos = data.items.map(element => {
     return {
       videoId: element.snippet.resourceId.videoId,
-      channelId: element.snippet.videoOwnerChannelId,
+      channelId: element.snippet.channelId,
       position: element.snippet.position,
       title: element.snippet.title
     }
@@ -83,6 +88,7 @@ async function channelChecker(id) {
 
 async function execute(info) {
   let playlistData = await channelChecker(info)
+  // console.log(playlistData)
 
   if (playlistData.channels.length) {
     let channels = playlistData.channels.map(async channel => {
@@ -99,6 +105,7 @@ async function execute(info) {
   }
 
   let videoCheck = playlistData.videos.map(async video => {
+    // console.log(video)
     let results = await videoExistsInDb(video.videoId)
     if (!results.status) {
       return video
@@ -109,9 +116,13 @@ async function execute(info) {
 
   let videoInsertList = videoList.filter(Boolean)
   
+  // console.log(videoInsertList)
+
   videoInsertList.forEach(async video => {
+    // console.log(video)
     let insertResults
     if (video.channelId) {
+      // console.log(video)
        insertResults = await processVideoInfo({videoId: video.videoId, channelId: video.channelId})
        console.log(`${colors.brightGreen}Added video${colors.Reset} ${colors.brightCyan}${video.videoId}${colors.Reset} ${colors.brightGreen}with objid${colors.Reset} ${colors.brightMagenta}${insertResults.insertId}${colors.Reset}`)
      } else {
@@ -121,3 +132,17 @@ async function execute(info) {
 }
 
 execute(process.argv[2])
+
+// async function test(input) {
+//   let playList = await playlistItems(input)
+//   playList.items.forEach(item => {
+//     console.log(item)
+//     // channelExistsInDb(item.snippet.channelId)
+//     //   .then(x => console.log(x))
+//     // console.log(item.snippet)
+//   })
+
+// }
+
+// test(process.argv[2])
+
