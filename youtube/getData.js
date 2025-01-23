@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import axios from 'axios';
-const APIKEY = process.env.API_KEY1;
+const APIKEY = process.env.API_KEY2;
 
 export async function videoData(id) {
   let results
@@ -10,7 +10,7 @@ export async function videoData(id) {
   } catch (err) {
     console.log(err)
   } finally {
-    return results.data
+    return results.data.items
   }  
 }
 
