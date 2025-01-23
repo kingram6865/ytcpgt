@@ -2,6 +2,8 @@ import { playlistItems, videoData, channelData } from './youtube/getData.js';
 import { getChannel, getVideo, addChannel, addVideo } from './db/sqlLibrary.js';
 import { formatDuration } from './utilities/tools.js';
 import * as colors from  './utilities/consoleColors.js';
+let playListData = {playlistId: process.argv[2], playlistName: ""}
+
 
 async function channelExistsInDb(channel) {
   let information = await getChannel(channel);
@@ -42,19 +44,28 @@ async function processVideoInfo(data) {
 
   // console.log("Line 40: ", channelInfo)
   result = await videoData(data.videoId)
+  // console.log("\t(playlistItems Line 45): ", data.videoId, result.length, (result.length > 0), !(result.length > 0)) 
+  if (result.length) {
+    insertData = {
+      keywords: (result[0]) ? result[0].snippet.tags : "",
+      published: (result[0]) ? result[0].snippet.publishedAt : "",
+      title: (result[0]) ? result[0].snippet.title : "",
+      description: (result[0]) ? result[0].snippet.description : "",
+      duration: formatDuration((result[0]) ? result[0].contentDetails.duration : ""),
+      url: `https://www.youtube.com/watch?v=${data.videoId}`,
+      thumbnails: (result[0]) ? result[0].snippet.thumbnails : "",
+      sequence: data.position,
+      notes: `"Extracted from playlist"`
+    }
 
-  insertData = {
-    keywords: (result.items[0].snippet.tags) ? result.items[0].snippet.tags : "",
-    published: result.items[0].snippet.publishedAt,
-    title: result.items[0].snippet.title,
-    description: result.items[0].snippet.description,
-    duration: formatDuration(result.items[0].contentDetails.duration),
-    url: `https://www.youtube.com/watch?v=${data.videoId}`,
-    thumbnails: result.items[0].snippet.thumbnails
-  }
-
-  let results = await addVideo(insertData, channelInfo.data.objid)
-  return results
+    let results = await addVideo(insertData, channelInfo.data.objid)
+    return results
+    // return {insertId: "Testing"}
+  } 
+  // else {
+  //   console.log("\t(playlistItems Line 63): ", result)
+    return {insertId: 0}
+  // }
 }
 
 async function channelChecker(id) {
@@ -88,47 +99,54 @@ async function channelChecker(id) {
 
 async function execute(info) {
   let playlistData = await channelChecker(info)
-  // console.log(playlistData)
-
-  if (playlistData.channels.length) {
-    let channels = playlistData.channels.map(async channel => {
-      let insertResults = await processChannelInfo(channel)  
-      return insertResults
-    })
-
-    let channelAddResults = await Promise.all(channels)
-    channelAddResults.forEach(item => {
-      console.log(`${colors.brightGreen}Added channel${colors.Reset} ${colors.brightCyan}${item.channel}${colors.Reset} ${colors.brightGreen}with objid${colors.Reset} ${colors.brightMagenta}${item.dbObjid}${colors.Reset}`)
-    })
-  } else {
-    console.log(`${colors.brightRed}No new channels to add from playlist${colors.Reset} ${colors.brightCyan}${info}${colors.Reset}`)
-  }
-
-  let videoCheck = playlistData.videos.map(async video => {
-    // console.log(video)
-    let results = await videoExistsInDb(video.videoId)
-    if (!results.status) {
-      return video
-    }
-  }) 
-
-  let videoList = await Promise.all(videoCheck)
-
-  let videoInsertList = videoList.filter(Boolean)
-  
-  // console.log(videoInsertList)
-
-  videoInsertList.forEach(async video => {
-    // console.log(video)
-    let insertResults
-    if (video.channelId) {
-      // console.log(video)
-       insertResults = await processVideoInfo({videoId: video.videoId, channelId: video.channelId})
-       console.log(`${colors.brightGreen}Added video${colors.Reset} ${colors.brightCyan}${video.videoId}${colors.Reset} ${colors.brightGreen}with objid${colors.Reset} ${colors.brightMagenta}${insertResults.insertId}${colors.Reset}`)
-     } else {
-      console.log(`${colors.brightRed}${video.videoId}${colors.Reset} ${colors.brightCyan}not added${colors.Reset}`)
-     }
+  playlistData.videos.forEach(item => {
+    console.log(`[${colors.brightGreen}${item.videoId}${colors.Reset}] [${colors.brightGreen}${item.title}${colors.Reset}]`)
   })
+
+  // if (playlistData.channels.length) {
+  //   let channels = playlistData.channels.map(async channel => {
+  //     let insertResults = await processChannelInfo(channel)  
+  //     return insertResults
+  //   })
+
+  //   let channelAddResults = await Promise.all(channels)
+  //   channelAddResults.forEach(item => {
+  //     console.log(`${colors.brightGreen}Added channel${colors.Reset} ${colors.brightCyan}${item.channel}${colors.Reset} ${colors.brightGreen}with objid${colors.Reset} ${colors.brightMagenta}${item.dbObjid}${colors.Reset}`)
+  //   })
+  // } else {
+  //   console.log(`${colors.brightGreen}Channel exists for playlist${colors.Reset} ${colors.brightCyan}${info}${colors.Reset}`)
+  // }
+
+  // let videoCheck = playlistData.videos.map(async video => {
+  //   // console.log(video)
+  //   let results = await videoExistsInDb(video.videoId)
+  //   if (!results.status) {
+  //     return video
+  //   } else {
+  //     console.log(`${colors.brightGreen}[ARCHIVED]${colors.Reset} ${colors.brightYellow}${video.videoId}${colors.Reset} ${colors.brightCyan}${video.title}${colors.Reset}`)
+  //   }
+  // }) 
+
+  // let videoList = await Promise.all(videoCheck)
+
+  // let videoInsertList = videoList.filter(Boolean)
+  
+  // // console.log(videoInsertList)
+
+  // videoInsertList.forEach(async video => {
+  //   let insertResults
+  //   if (video.channelId) {
+  //     // console.log(video)
+  //      insertResults = await processVideoInfo({videoId: video.videoId, channelId: video.channelId, position: video.position})
+  //      if (insertResults.insertId) {
+  //       console.log(`${colors.brightGreen}Added video${colors.Reset} [${colors.brightCyan}${video.videoId}${colors.Reset}] ${colors.brightGreen}with objid${colors.Reset} ${colors.brightMagenta}${insertResults.insertId}${colors.Reset}\t${video.title}`)
+  //     } else {
+  //       console.log(`[${colors.brightCyan}${video.videoId}${colors.Reset}] ${colors.brightRed}was removed or private. The API returned no data.${colors.Reset}`)
+  //     }
+  //    } else {
+  //     console.log(`${colors.brightRed}${video.videoId}${colors.Reset} ${colors.brightCyan}not added${colors.Reset}`)
+  //    }
+  // })
 }
 
 execute(process.argv[2])
@@ -145,4 +163,3 @@ execute(process.argv[2])
 // }
 
 // test(process.argv[2])
-
