@@ -1,2 +1,5 @@
 .env
 node_modules/
+test.txt
+temp.txt
+temp/
