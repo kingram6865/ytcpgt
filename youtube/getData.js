@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import axios from 'axios';
 const API = "https://youtube.googleapis.com/youtube/v3/";
-const APIKEY = process.env.API_KEY1;
+const APIKEY = process.env.API_KEY2;
 
 export async function videoData(id) {
   let results
@@ -31,17 +31,26 @@ export async function playlistItems(id) {
   let results
   let i = 1;
   let videoList = []
-  const url = `https://youtube.googleapis.com/youtube/v3/playlistItems?maxResults=50&part=snippet,contentDetails,status&playlistId=${id}&key=${APIKEY}`
+  const params = new URLSearchParams({
+    maxResults: 50,
+    part: 'id,snippet,contentDetails,status',
+    playlistId: id,
+    key: APIKEY
+  });
+
+  const url = `${API}playlistItems?${params}`
+
+  // const url = `https://youtube.googleapis.com/youtube/v3/playlistItems?maxResults=50&part=snippet,contentDetails,status&playlistId=${id}&key=${APIKEY}`
   try {
+    console.log(`Retrieving page ${i}`)
     results = await axios.get(url)
     videoList = [...videoList, ...results.data.items]
     let nextpage = results.data.nextPageToken
-    console.log(`Retrieving page ${i}`)
     while (nextpage) {
       i = i + 1
       let newParams = new URLSearchParams({
         maxResults: 50,
-        part: 'snippet,contentDetails,status',
+        part: 'id,snippet,contentDetails,status',
         playlistId: id,
         key: APIKEY,
         pageToken: nextpage
@@ -56,6 +65,7 @@ export async function playlistItems(id) {
     console.error('Failed to fetch playlist items:', err.message, err.response?.data);
   }
 
+  videoList.sort((a,b) => (a.snippet.publishedAt > b.snippet.publishedAt) ? 1 : (a.snippet.publishedAt < b.snippet.publishedAt) ? -1 : 0)
   return videoList;
 }
 
