@@ -13,7 +13,7 @@ export function formatDuration(input){
   let matches =[/(\d+)H/,/(\d+)M/,/(\d+)S/];
 
   for (let k=0; k < matches.length; k++){
-          timeinfo[k] = (timedata.match(matches[k])) ? timedata.match(matches[k])[1].padStart(2,'0') : '00';
+    timeinfo[k] = (timedata.match(matches[k])) ? timedata.match(matches[k])[1].padStart(2,'0') : '00';
   }
 
   return timeinfo.join("");
