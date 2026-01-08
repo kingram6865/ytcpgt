@@ -42,7 +42,7 @@ export async function playlistItems(id) {
 
   // const url = `https://youtube.googleapis.com/youtube/v3/playlistItems?maxResults=50&part=snippet,contentDetails,status&playlistId=${id}&key=${APIKEY}`
   try {
-    console.log(`Retrieving page ${i}`)
+    console.log(`Retrieving playlist ${id} page ${i}`)
     results = await axios.get(url)
     videoList = [...videoList, ...results.data.items]
     let nextpage = results.data.nextPageToken
@@ -56,7 +56,7 @@ export async function playlistItems(id) {
         pageToken: nextpage
       })
       let nextPageUrl = `${API}playlistItems?${newParams.toString()}`
-      console.log(`Retrieving page ${i}`)
+      console.log(`Retrieving playlist ${id} page ${i}`)
       let newResults = await axios.get(nextPageUrl)
       videoList.push(...newResults.data.items)
       nextpage = newResults.data.nextPageToken
@@ -90,30 +90,25 @@ export async function channelSections(id) {
 export async function channelPlaylists(id) {
   let playlists = [];
   let pageToken = null;
+  let i = 0;
 
-  const params = new URLSearchParams({
-    part: 'snippet,contentDetails,id',
-    maxResults: 50,
-    key: APIKEY,
-    channelId: id,
-    ...(pageToken && {pageToken})
-  });
+  do {
+    const params = new URLSearchParams({
+      part: 'snippet,contentDetails,id',
+      maxResults: 50,
+      key: APIKEY,
+      channelId: id,
+      ...(pageToken && {pageToken})
+    });
 
-  const url = `${API}playlists?${params.toString()}`;
-  console.log(url)
-
-  try {
+    const url = `${API}playlists?${params.toString()}`;    
     const results = await axios.get(url)
-    return results.data.items;
-  } catch(err) {
-    console.error('Failed to fetch playlists items:', err.message, err.response?.data);
-  }
-}
+    playlists = [ ...playlists, ...results.data.items]
+    pageToken = results.data.nextPageToken ?? null;
+    i++;
+    // console.log(i, results.data.items.length)
+  } while (pageToken);
 
-
-
-
-
-async function nextPage(token) {
-
+  // console.log(playlists)
+  return playlists;
 }
