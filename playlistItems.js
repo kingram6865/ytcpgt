@@ -5,21 +5,21 @@ import * as colors from  './utilities/consoleColors.js';
 let playListData = {playlistId: process.argv[2], playlistName: ""}
 
 
-async function channelExistsInDb(channel) {
-  let information = await getChannel(channel);
+async function channelExistsInDb(channel, dbsrc, db) {
+  let information = await getChannel(channel, dbsrc, db);
   // console.log("Line 8: ", Object.keys(information))
   // console.log(information.objid)
   let result = (information) ? {status: true, data: information} : {status: false, data: `${channel} does not exist`}
   return result
 }
 
-async function videoExistsInDb(video) {
-  let information = await getVideo(video)
+async function videoExistsInDb(video, dbsrc, db) {
+  let information = await getVideo(video, dbsrc, db)
   let result = (information.length) ? {status: true, data: information[0]} : {status: false, data: `${video} does not exist`}
   return result
 }
 
-async function processChannelInfo(channelId) {
+async function processChannelInfo(channelId, dbsrc, db) {
   let insertResults, channelInsertData
   let apiData = await channelData(channelId)
   channelInsertData = {
@@ -32,11 +32,11 @@ async function processChannelInfo(channelId) {
     customUrl: apiData.items[0].snippet.customUrl
   }
 
-  insertResults = await addChannel(channelInsertData)
+  insertResults = await addChannel(channelInsertData, dbsrc, db)
   return {channel: channelId, dbObjid: insertResults.insertId} 
 }
 
-async function processVideoInfo(data) {
+async function processVideoInfo(data, dbsrc, db) {
   // console.log(data.channelId)
   let channelInfo, result, insertData;
   channelInfo = await channelExistsInDb(data.channelId);
@@ -58,7 +58,7 @@ async function processVideoInfo(data) {
       notes: `"Extracted from playlist"`
     }
 
-    let results = await addVideo(insertData, channelInfo.data.objid)
+    let results = await addVideo(insertData, channelInfo.data.objid, dbsrc, db)
     return results
     // return {insertId: "Testing"}
   } 
@@ -73,32 +73,52 @@ async function channelChecker(id) {
   let channelList = []
   let data = await playlistItems(id)
 
-  for (let index = 0; index < data.items.length; index++) {
-    if (!channelList.includes(data.items[index].snippet.channelId)) {
-      channelList.push(data.items[index].snippet.channelId)
-    }
+  /**
+   * id: playlistId
+   * snippet: {
+   * 
+   * 
+   * }
+   * contentDetails: { videoId: 'BpPhkAvugZ4', videoPublishedAt: '2020-06-04T16:30:09Z' }
+   * status: { privacyStatus: 'public' }
+   */
+
+  for (const x in data) {
+    // console.log(data[x].id, data[x].snippet, data[x].contentDetails, data[x].status)
+    // console.log(data[x].id)
+    console.log(data[x].kind, data[x].snippet.channelTitle, data[x].snippet.publishedAt, data[x].snippet.channelId, data[x].snippet.title, data[x].snippet.position)
+    // console.log(data[x].contentDetails)
+    // console.log(data[x].status)
   }
 
-  let videos = data.items.map(element => {
-    return {
-      videoId: element.snippet.resourceId.videoId,
-      channelId: element.snippet.channelId,
-      position: element.snippet.position,
-      title: element.snippet.title
-    }
-  });
+  // for (let index = 0; index < data.items.length; index++) {
+  //   if (!channelList.includes(data.items[index].snippet.channelId)) {
+  //     channelList.push(data.items[index].snippet.channelId)
+  //   }
+  // }
 
-  const channelInfo = channelList.map(async channel => {
-    let result = await channelExistsInDb(channel)
-    return (!result.status) ? channel : null
-  })
+  // let videos = data.items.map(element => {
+  //   return {
+  //     videoId: element.snippet.resourceId.videoId,
+  //     channelId: element.snippet.channelId,
+  //     position: element.snippet.position,
+  //     title: element.snippet.title
+  //   }
+  // });
 
-  finalResult = await Promise.all(channelInfo)
-  return {channels: finalResult.filter(Boolean), videos}
+  // const channelInfo = channelList.map(async channel => {
+  //   let result = await channelExistsInDb(channel)
+  //   return (!result.status) ? channel : null
+  // })
+
+  // finalResult = await Promise.all(channelInfo)
+  // return {channels: finalResult.filter(Boolean), videos}
 }
 
 async function execute(info) {
   let playlistData = await channelChecker(info)
+
+  return;
   playlistData.videos.forEach(item => {
     console.log(`[${colors.brightGreen}${item.videoId}${colors.Reset}] [${colors.brightGreen}${item.title}${colors.Reset}]`)
   })
