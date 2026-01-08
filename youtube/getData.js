@@ -87,6 +87,33 @@ export async function channelSections(id) {
   }
 }
 
+export async function channelPlaylists(id) {
+  let playlists = [];
+  let pageToken = null;
+
+  const params = new URLSearchParams({
+    part: 'snippet,contentDetails,id',
+    maxResults: 50,
+    key: APIKEY,
+    channelId: id,
+    ...(pageToken && {pageToken})
+  });
+
+  const url = `${API}playlists?${params.toString()}`;
+  console.log(url)
+
+  try {
+    const results = await axios.get(url)
+    return results.data.items;
+  } catch(err) {
+    console.error('Failed to fetch playlists items:', err.message, err.response?.data);
+  }
+}
+
+
+
+
+
 async function nextPage(token) {
 
 }
