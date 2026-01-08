@@ -2,6 +2,7 @@ import { playlistItems, videoData, channelData } from './youtube/getData.js';
 import { getChannel, getVideo, addChannel, addVideo } from './db/sqlLibrary.js';
 import { formatDuration } from './utilities/tools.js';
 import * as colors from  './utilities/consoleColors.js';
+import chalk from 'chalk';
 let playListData = {playlistId: process.argv[2], playlistName: ""}
 
 
@@ -72,6 +73,7 @@ async function channelChecker(id) {
   let finalResult
   let channelList = []
   let data = await playlistItems(id)
+  data.sort((a, b) => (a.snippet.position > b.snippet.position) ? 1 : (a.snippet.position < b.snippet.position) ? -1 :0)
 
   /**
    * id: playlistId
@@ -86,7 +88,7 @@ async function channelChecker(id) {
   for (const x in data) {
     // console.log(data[x].id, data[x].snippet, data[x].contentDetails, data[x].status)
     // console.log(data[x].id)
-    console.log(data[x].kind, data[x].snippet.channelTitle, data[x].snippet.publishedAt, data[x].snippet.channelId, data[x].snippet.title, data[x].snippet.position)
+    console.log(`[${chalk.ansi256(220)(data[x].snippet.position.toString().padStart(3, ' '))}]`, data[x].kind, chalk.ansi256(33)(data[x].snippet.channelTitle), data[x].snippet.publishedAt, data[x].snippet.channelId, chalk.ansi256(69)(data[x].snippet.title))
     // console.log(data[x].contentDetails)
     // console.log(data[x].status)
   }
@@ -170,16 +172,3 @@ async function execute(info) {
 }
 
 execute(process.argv[2])
-
-// async function test(input) {
-//   let playList = await playlistItems(input)
-//   playList.items.forEach(item => {
-//     console.log(item)
-//     // channelExistsInDb(item.snippet.channelId)
-//     //   .then(x => console.log(x))
-//     // console.log(item.snippet)
-//   })
-
-// }
-
-// test(process.argv[2])
