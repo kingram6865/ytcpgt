@@ -99,9 +99,10 @@ export async function executeSQL(sql, dbsrc, db) {
     connection = await pool.getConnection();
     console.log(`[DEBUG] Got connection from pool for ${dbsrc}:${db}`);
 
-    const [rows] = await pool.query(sql);
-    console.log(`[DEBUG] Query successful, rows: ${rows.length}`);
-    return { success: true, rowCount: rows.length, data: rows };
+    const [rows] = await connection.query(sql);
+    const insertId = rows.insertId ?? null;
+    console.log(`[DEBUG] Query successful, rows: ${(rows?.length > 0) ? rows.length : JSON.stringify(rows, null, 2)}`);
+    return { success: true, rowCount: rows.length, data: rows, insertId };
   } catch (err) {
     console.error(`[DEBUG] Query failed:`, err.message);
     if (err.sqlState === '45000') {
@@ -109,10 +110,15 @@ export async function executeSQL(sql, dbsrc, db) {
     }
     throw err;
   } finally {
-    pool.end();
-    // if (connection) {
-    //   console.log(`[DEBUG] Releasing connection back to pool`);
-    //   connection.release();
-    // }
+    if (connection) connection.release();
+  }
+}
+
+export async function closePool(dbsrc, db) {
+  const key = `${dbsrc}:${db}`;
+  const pool = pools[key];
+  if (pool) {
+    await pool.end();
+    delete pools[key];
   }
 }
