@@ -8,26 +8,28 @@ export async function listTables(dbsrc, db) {
 
 export async function videoExists(videoid, dbsrc, db) {
   let exists = false
-  let sql = `SELECT count(*) as dupes FROM youtube_downloads WHERE videoid = '${videoid}'`;
+  let sql = `SELECT * FROM youtube_downloads WHERE videoid = '${videoid}'`;
   let results = await executeSQL(sql, dbsrc, db)
   
-  if (results.success && results.data && results.data[0]?.dupes > 0) {
+  if (results.success && results.data && results.data.length > 0) {
     exists = true;
   }
   
-  return exists;
+  results = {...results, exists};
+  return results;
 }
 
 export async function channelExists(channelid, dbsrc, db) {
   let exists = false;
-  let sql = `SELECT COUNT(*) as dupes FROM youtube_channel_owners WHERE channel_id = '${channelid}'`;
+  let sql = `SELECT * FROM youtube_channel_owners WHERE channel_id = '${channelid}'`;
   let results = await executeSQL(sql, dbsrc, db);
 
-  if (results.success && results.data && results.data[0]?.dupes > 0) {
+  if (results.success && results.data && results.data.length > 0) {
     exists = true;
   }
 
-  return exists;
+  results = {...results, exists};
+  return results;
 }
 
 export async function getChannel(channelid, dbsrc, db) {
@@ -46,8 +48,9 @@ export async function addChannel(data, dbsrc, db) {
   let values = [data.title, data.channelId, data.description, data.created, data.views, data.thumbnail, data.customUrl]
   let sql = `INSERT INTO youtube_channel_owners (owner_name, channel_id, description, joined, views, thumbnail_link, custom_url) VALUES (?, ?, ?, str_to_date(?, '%Y-%m-%d %H:%i:%s'), ?, ?, ?)`;
   sql = formatSQL(sql, values)
-  let results = await executeSQL(sql, dbsrc, db);
-  return results.data
+
+  const results = await executeSQL(sql, dbsrc, db);
+  return { ...results, objid: results.insertId };
 }
 
 export async function addVideo(data, channelid, dbsrc, db) {
@@ -59,4 +62,15 @@ export async function addVideo(data, channelid, dbsrc, db) {
   // console.log(sql)
   let results = await executeSQL(sql, dbsrc, db);
   return results.data
+}
+
+export async function ensureChannelObjid(channelId, channelInsertData, dbsrc, db) {
+  // 1) Try fetch existing
+  let existingSQL = `SELECT objid FROM youtube_channel_owners WHERE channel_id = ${channelId} LIMIT 1`
+  const sel = await executeSQL(existingSQL, dbsrc, db);
+  if (sel.rowCount > 0) return sel.data[0].objid;
+
+  // 2) Insert, return insertId
+  const ins = await addChannel(channelInsertData, dbsrc, db);
+  return ins.objid; // using insertId from executeSQL
 }
