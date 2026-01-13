@@ -18,9 +18,8 @@ export async function videoData(id) {
     results = await axios.get(url)
   } catch (err) {
     console.error('Failed to fetch videoData:', err.message, err.response?.data);
-  } finally {
-    return results.data.items
-  }  
+    return [];
+  } 
 }
 
 export async function channelData(id) {
