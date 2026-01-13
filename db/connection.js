@@ -89,22 +89,25 @@ function getPool(dbsrc, db) {
   return pools[key];
 }
 
-export async function executeSQL(sql, dbsrc, db) {
-  console.log(`[DEBUG] executeSQL called with dbsrc: ${dbsrc}, db: ${db}, sql: ${sql.substring(0, 50)}...`);
+export async function executeSQL(sql, dbsrc, db, params = undefined) {
+  // console.log(`[DEBUG] executeSQL called with dbsrc: ${dbsrc}, db: ${db}, sql: ${sql.substring(0, 50)}...`);
   const pool = getPool(dbsrc, db);
-  console.log(`[DEBUG] Pool retrieved:`, !!pool);
+  // console.log(`[DEBUG] Pool retrieved:`, !!pool);
   let connection;
 
   try {
     connection = await pool.getConnection();
-    console.log(`[DEBUG] Got connection from pool for ${dbsrc}:${db}`);
+    // console.log(`[DEBUG] Got connection from pool for ${dbsrc}:${db}`);
 
-    const [rows] = await connection.query(sql);
+    const queryArgs = (params && params.length) ? [sql, params] : [sql];
+
+    const [rows] = await connection.query(...queryArgs);
+    
     const insertId = rows.insertId ?? null;
-    console.log(`[DEBUG] Query successful, rows: ${(rows?.length > 0) ? rows.length : JSON.stringify(rows, null, 2)}`);
+    // console.log(`[DEBUG] Query successful, rows: ${(rows?.length > 0) ? rows.length : JSON.stringify(rows, null, 2)}`);
     return { success: true, rowCount: rows.length, data: rows, insertId };
   } catch (err) {
-    console.error(`[DEBUG] Query failed:`, err.message);
+    // console.error(`[DEBUG] Query failed:`, err.message);
     if (err.sqlState === '45000') {
       return { success: false, error: { message: err.sqlMessage, sql: err.sql } };
     }
