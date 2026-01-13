@@ -64,6 +64,36 @@ export async function addVideo(data, channelid, dbsrc, db) {
   return results.data
 }
 
+export async function addVideoBatch(dataArray, dbsrc, db) {
+  const params = [];
+  const rowSql = `(?, date_format(?, '%Y-%m-%d %r'), ?, ?, ?, ?, ?, ?, 1, 0, ?)`;
+  const valuesSql = dataArray.map(() => rowSql).join(', ');
+
+  const sql = `
+    INSERT INTO youtube_downloads
+      (keywords, upload_date, caption, description, play_length, url, channel_owner_id, thumbnail, status, rewatch, sequence)
+    VALUES ${valuesSql}`;
+  
+  for (const data of dataArray) {
+    const keywords = Array.isArray(data?.keywords) ? data.keywords.join(',') : (data?.keywords ?? '');
+    params.push(
+      keywords,
+      data?.published ?? null,
+      data?.title ?? null,
+      data?.description ?? null,
+      data?.duration ?? null,
+      data?.url ?? null,
+      data.chanId,
+      data?.thumbnails ? JSON.stringify(data.thumbnails) : null,
+      data?.sequence ?? null
+    );
+  }
+
+  const results = await executeSQL(sql, dbsrc, db, params);
+  console.log(results)
+  return results.data;
+}
+
 export async function ensureChannelObjid(channelId, channelInsertData, dbsrc, db) {
   // 1) Try fetch existing
   let existingSQL = `SELECT objid FROM youtube_channel_owners WHERE channel_id = ${channelId} LIMIT 1`
