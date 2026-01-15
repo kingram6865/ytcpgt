@@ -129,10 +129,8 @@ export async function getChannelId(handle) {
   }).toString();
 
   const url = `${API}channels?${params}`
-  
   const { data } = await axios.get(url)
 
-  console.log(url, data)
   if (!data.items?.length) {
     throw new Error(`Channel not found for handle: ${handle}`);
   }
