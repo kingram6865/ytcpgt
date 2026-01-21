@@ -1,12 +1,14 @@
 import { getChannelId, channelData, channelPlaylists, playlistItems } from "./youtube/getData.js";
-import { channelExists, getChannel } from "./db/sqlLibrary.js";
+import { channelExists, getChannel, addChannel, addVideoBatch } from "./db/sqlLibrary.js";
 import { closePool } from "./db/connection.js";
-import { formatPublishedDate } from "./utilities/tools.js";
+import { formatPublishedDate, gatherChannelDataForArchival, gatherVideoDataForArchival } from "./utilities/tools.js";
 import chalk from "chalk";
 
 const source = 55;
 const database = 'test';
 let channel = process.argv[2];
+let channelApiData, apiChannelId, channelobjid, apiChannelData
+
 
 // import { channelExists, videoExists, getChannel, getVideo, addChannel, addVideo } from './db/sqlLibrary.js';
 // import { videoData, channelData } from './youtube/getData.js';
@@ -129,22 +131,33 @@ let channel = process.argv[2];
 // execute(process.argv[2])
 
 async function main() {
-  let channelApiData, channelDbData, playlists
+  let channelDbData, playlists
   if (/@/.test(channel)) {
     channel = await getChannelId(channel);
+    console.log(`Line 137: ${channel}`)
   } else {
     // console.log(channel.match(/http*\:\/\//))
     channel = channel.split('/')[4]
   }
 
   let channelExistence = await channelExists(channel, source, database);
-  // console.log(channel, `${channelExistence.exists}`);
-
-
+  
   if (!channelExistence.exists) {
     channelApiData = await channelData(channel);
+    apiChannelId = channelApiData.items[0].id 
+
+    apiChannelData = gatherChannelDataForArchival(channelApiData.items[0])
+    let channelAdded = await addChannel(apiChannelData, source, database);
+    channelobjid = channelAdded.insertId
+    
+    console.log(`objid: ${channelobjid}, Channel Id: ${apiChannelId}`)
+
+    // let data = channelApiData
+    // let results = await addChannel(data, source, database)
+
+
     // console.log(chalk.bgAnsi256(196)("Channel Not in Youtube Archive: \n"), JSON.stringify(channelApiData, null, 2))
-    playlists = await channelPlaylists(channel);
+    // playlists = await channelPlaylists(channel);
     
     // playlists.forEach(element => {
     //   let id = chalk.ansi256(33)(element.id);
@@ -174,43 +187,64 @@ async function main() {
 
   } else {
     channelDbData = await getChannel(channel, source, database);
-    playlists = await channelPlaylists(channelDbData.channel_id);
-    playlists.sort((a, b) => (a.snippet.publishedAt > b.snippet.publishedAt) ? 1 : (a.snippet.publishedAt < b.snippet.publishedAt) ? -1 : 0)
-    // let parentObjid = chalk.ansi256(228)(channelDbData.objid)
-    // let channelOwnerName = chalk.ansi256(68)(channelDbData.owner_name)
-    // let channelid = chalk.ansi256(82)(channelDbData.channel_id)
-    
-    // console.log(`Youtube Archive Data for channel [${channelid}] ${parentObjid}, ${channelOwnerName}`);
-    // for (const list of playlists) {
-    //   const items = await playlistItems(list.id);
-    //   console.log("\t", list.id, list.snippet.title, `${items.length} items.`)
-    //   items.forEach(item => {
-    //     if (!(item.status.privacyStatus === "private")) {
-    //       // console.log(`\t\t${JSON.stringify(item)}`)
-    //       let title = item.snippet.title
-    //       let videoid = item.contentDetails.videoId
-    //       console.log(`\t\t${item.snippet.position.toString().padStart(2, ' ')} ${videoid} ${title}`)
-    //     }
-    //   })
-    // }
-  }
+    channelobjid = channelDbData.objid
+    apiChannelId = channelDbData.channel_id
+  } 
 
+  playlists = await channelPlaylists(apiChannelId);
+  playlists.sort((a, b) => (a.snippet.publishedAt > b.snippet.publishedAt) ? 1 : (a.snippet.publishedAt < b.snippet.publishedAt) ? -1 : 0)
+  // let parentObjid = chalk.ansi256(228)(channelDbData.objid)
+  // let channelOwnerName = chalk.ansi256(68)(channelDbData.owner_name)
+  // let channelid = chalk.ansi256(82)(channelDbData.channel_id)
+  
+  // console.log(`Youtube Archive Data for channel [${channelid}] ${parentObjid}, ${channelOwnerName}`);
+  // for (const list of playlists) {
+  //   const items = await playlistItems(list.id);
+  //   console.log("\t", list.id, list.snippet.title, `${items.length} items.`)
+  //   items.forEach(item => {
+  //     if (!(item.status.privacyStatus === "private")) {
+  //       // console.log(`\t\t${JSON.stringify(item)}`)
+  //       let title = item.snippet.title
+  //       let videoid = item.contentDetails.videoId
+  //       console.log(`\t\t${item.snippet.position.toString().padStart(2, ' ')} ${videoid} ${title}`)
+  //     }
+  //   })
+  // }
+
+
+  // for (let i = 0; i < 3; i++) {
   for (let i = 0; i < playlists.length; i++) {
+    let insertDataList = []
     const items = await playlistItems(playlists[i].id);
     let id = chalk.ansi256(33)(playlists[i].id);
     let title = chalk.ansi256(118)(playlists[i].snippet.title);
     let childrenCount = chalk.ansi256(226)(playlists[i].contentDetails?.itemCount.toString().padStart(3, ' '));
     let published = chalk.ansi256(206)(formatPublishedDate(playlists[i].snippet.publishedAt));
 
+    if (!Array.isArray(items) || items.length === 0) continue;
+      
+    //   {
+    //   // console.log(`SKIPPING ${id} ${published} (${childrenCount}) ${title}`);
+    //   continue;
+    // }
+
     console.log(`${id} ${published} (${childrenCount}) ${title}`)
-    items.forEach(item => {
-      if (!(item.status.privacyStatus === "private")) {
+    // console.log(gatherVideoDataForArchival(items[0], channelobjid))
+
+    items?.forEach(item => {
+      if (item.status.privacyStatus !== "private") {
         // console.log(`\t\t${JSON.stringify(item)}`)
-        console.log(`\t\t${item.snippet.position.toString().padStart(2, ' ')} ${item.contentDetails.videoId} ${item.snippet.title}`)
+        // console.log(`\t\t${item.snippet.position.toString().padStart(2, ' ')} ${item.contentDetails.videoId} ${item.snippet.title}`)
+        insertDataList.push(gatherVideoDataForArchival(item, channelobjid));
+        // console.log("\t", insertData.playlistid, insertData.sequence, insertData.published, insertData.title, insertData.duration)
       }
     })
-  } 
 
+    console.log(insertDataList.length, items.length)
+
+    // let results = await addVideoBatch(insertDataList, source, database);
+    // console.log(results);
+  }
 
 
 
@@ -219,6 +253,6 @@ async function main() {
 
 
   const final = await closePool(source, database)
-}
+  }
 
 main()
