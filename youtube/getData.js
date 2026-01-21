@@ -50,7 +50,7 @@ export async function playlistItems(id) {
 
   // const url = `https://youtube.googleapis.com/youtube/v3/playlistItems?maxResults=50&part=snippet,contentDetails,status&playlistId=${id}&key=${APIKEY}`
   try {
-    console.log(`Retrieving playlist ${id} page ${i}`)
+    // console.log(`Retrieving playlist ${id} page ${i}`)
     results = await axios.get(url)
     videoList = [...videoList, ...results.data.items]
     let nextpage = results.data.nextPageToken
@@ -64,7 +64,7 @@ export async function playlistItems(id) {
         pageToken: nextpage
       })
       let nextPageUrl = `${API}playlistItems?${newParams.toString()}`
-      console.log(`Retrieving playlist ${id} page ${i}`)
+      // console.log(`Retrieving playlist ${id} page ${i}`)
       let newResults = await axios.get(nextPageUrl)
       videoList.push(...newResults.data.items)
       nextpage = newResults.data.nextPageToken
