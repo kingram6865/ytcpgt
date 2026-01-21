@@ -52,10 +52,10 @@ export function formatSQL(sql, values) {
 const pools = {};
 
 function getPool(dbsrc, db) {
-  console.log(`[DEBUG] getPool called with dbsrc: ${dbsrc}, db: ${db}`);
+  // console.log(`[DEBUG] getPool called with dbsrc: ${dbsrc}, db: ${db}`);
   const key = `${dbsrc}:${db}`
   if (!pools[key]) {
-    console.log(`[DEBUG] Creating new pool for key: ${key}`);
+    // console.log(`[DEBUG] Creating new pool for key: ${key}`);
     let baseConfig;
     switch(dbsrc) {
       case 55:
@@ -71,19 +71,19 @@ function getPool(dbsrc, db) {
         throw new Error(`No pool config for dbsrc ${dbsrc}`)
     }
 
-    console.log(`[DEBUG] Base config host: ${baseConfig.host}, port: ${baseConfig.port}`);
+    // console.log(`[DEBUG] Base config host: ${baseConfig.host}, port: ${baseConfig.port}`);
     pools[key] = mysql.createPool({ ...baseConfig, database: db, waitForConnections: true, connectionLimit: 10, })
 
     pools[key].getConnection()
       .then(conn => {
-        console.log(`[DEBUG] Pool connection test successful for ${key}`);
+        // console.log(`[DEBUG] Pool connection test successful for ${key}`);
         conn.release();
       })
       .catch(err => {
         console.error(`[DEBUG] Pool connection test failed for ${key}:`, err.message);
       });
   } else {
-    console.log(`[DEBUG] Using existing pool for key: ${key}`);
+    // console.log(`[DEBUG] Using existing pool for key: ${key}`);
   }
 
   return pools[key];
@@ -102,7 +102,7 @@ export async function executeSQL(sql, dbsrc, db, params = undefined) {
     const queryArgs = (params && params.length) ? [sql, params] : [sql];
 
     const [rows] = await connection.query(...queryArgs);
-    
+
     const insertId = rows.insertId ?? null;
     // console.log(`[DEBUG] Query successful, rows: ${(rows?.length > 0) ? rows.length : JSON.stringify(rows, null, 2)}`);
     return { success: true, rowCount: rows.length, data: rows, insertId };
