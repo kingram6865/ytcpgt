@@ -1,4 +1,4 @@
-import { getChannelId, channelData, channelPlaylists } from "./youtube/getData.js";
+import { getChannelId, channelData, channelPlaylists, playlistItems } from "./youtube/getData.js";
 import { channelExists, getChannel } from "./db/sqlLibrary.js";
 import { closePool } from "./db/connection.js";
 import { formatPublishedDate } from "./utilities/tools.js";
@@ -129,9 +129,12 @@ let channel = process.argv[2];
 // execute(process.argv[2])
 
 async function main() {
-  let channelApiData, channelDbData
-  if (/^http|@/.test(channel)) {
+  let channelApiData, channelDbData, playlists
+  if (/@/.test(channel)) {
     channel = await getChannelId(channel);
+  } else {
+    // console.log(channel.match(/http*\:\/\//))
+    channel = channel.split('/')[4]
   }
 
   let channelExistence = await channelExists(channel, source, database);
@@ -141,7 +144,7 @@ async function main() {
   if (!channelExistence.exists) {
     channelApiData = await channelData(channel);
     // console.log(chalk.bgAnsi256(196)("Channel Not in Youtube Archive: \n"), JSON.stringify(channelApiData, null, 2))
-    const playlists = await channelPlaylists(channel);
+    playlists = await channelPlaylists(channel);
     
     // playlists.forEach(element => {
     //   let id = chalk.ansi256(33)(element.id);
@@ -152,16 +155,61 @@ async function main() {
     //   console.log(`${id} ${published} (${childrenCount}) ${title}`)
     // });
 
+    // for (let i = 0; i < playlists.length; i++) {
+    //   const items = await playlistItems(playlists[i].id);
+    //   let id = chalk.ansi256(33)(playlists[i].id);
+    //   let title = chalk.ansi256(118)(playlists[i].snippet.title);
+    //   let childrenCount = chalk.ansi256(226)(playlists[i].contentDetails?.itemCount.toString().padStart(3, ' '));
+    //   let published = chalk.ansi256(206)(formatPublishedDate(playlists[i].snippet.publishedAt));
 
-
-
-
+    //   console.log(`${id} ${published} (${childrenCount}) ${title}`)
+    //   items.forEach(item => {
+    //     if (!(item.status.privacyStatus === "private")) {
+    //       // console.log(`\t\t${JSON.stringify(item)}`)
+    //       console.log(`\t\t${item.snippet.position.toString().padStart(2, ' ')} ${item.contentDetails.videoId} ${item.snippet.title}`)
+    //     }
+    //   })
+    // }
 
 
   } else {
     channelDbData = await getChannel(channel, source, database);
-    console.log(chalk.bgAnsi256(226)("Youtube Archive Data: \n"), channelDbData)
+    playlists = await channelPlaylists(channelDbData.channel_id);
+    playlists.sort((a, b) => (a.snippet.publishedAt > b.snippet.publishedAt) ? 1 : (a.snippet.publishedAt < b.snippet.publishedAt) ? -1 : 0)
+    // let parentObjid = chalk.ansi256(228)(channelDbData.objid)
+    // let channelOwnerName = chalk.ansi256(68)(channelDbData.owner_name)
+    // let channelid = chalk.ansi256(82)(channelDbData.channel_id)
+    
+    // console.log(`Youtube Archive Data for channel [${channelid}] ${parentObjid}, ${channelOwnerName}`);
+    // for (const list of playlists) {
+    //   const items = await playlistItems(list.id);
+    //   console.log("\t", list.id, list.snippet.title, `${items.length} items.`)
+    //   items.forEach(item => {
+    //     if (!(item.status.privacyStatus === "private")) {
+    //       // console.log(`\t\t${JSON.stringify(item)}`)
+    //       let title = item.snippet.title
+    //       let videoid = item.contentDetails.videoId
+    //       console.log(`\t\t${item.snippet.position.toString().padStart(2, ' ')} ${videoid} ${title}`)
+    //     }
+    //   })
+    // }
   }
+
+  for (let i = 0; i < playlists.length; i++) {
+    const items = await playlistItems(playlists[i].id);
+    let id = chalk.ansi256(33)(playlists[i].id);
+    let title = chalk.ansi256(118)(playlists[i].snippet.title);
+    let childrenCount = chalk.ansi256(226)(playlists[i].contentDetails?.itemCount.toString().padStart(3, ' '));
+    let published = chalk.ansi256(206)(formatPublishedDate(playlists[i].snippet.publishedAt));
+
+    console.log(`${id} ${published} (${childrenCount}) ${title}`)
+    items.forEach(item => {
+      if (!(item.status.privacyStatus === "private")) {
+        // console.log(`\t\t${JSON.stringify(item)}`)
+        console.log(`\t\t${item.snippet.position.toString().padStart(2, ' ')} ${item.contentDetails.videoId} ${item.snippet.title}`)
+      }
+    })
+  } 
 
 
 
