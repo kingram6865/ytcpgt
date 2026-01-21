@@ -55,9 +55,9 @@ export async function addChannel(data, dbsrc, db) {
 
 export async function addVideo(data, channelid, dbsrc, db) {
   let keywords = (data.keywords) ? data.keywords.join(",") : ""
-  let values = [keywords, data.published, data.title, data.description, data.duration, data.url, channelid, JSON.stringify(data.thumbnails), data.sequence]
-  let sql = `INSERT INTO youtube_downloads (keywords, upload_date, caption, description, play_length, url, channel_owner_id, thumbnail, status, rewatch, sequence) \
-  VALUES (?, date_format(?, '%Y-%m-%d %r'), ?, ?, ?, ?, ?, ?, 1, 0, ?)`;
+  let values = [keywords, data.published, data.title, data.description, data.duration, data.url, channelid, JSON.stringify(data.thumbnails), data.sequence, data.playlistid]
+  let sql = `INSERT INTO youtube_downloads (keywords, upload_date, caption, description, play_length, url, channel_owner_id, thumbnail, status, rewatch, sequence, playlistid) \
+  VALUES (?, date_format(?, '%Y-%m-%d %r'), ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)`;
   sql = formatSQL(sql, values)
   // console.log(sql)
   let results = await executeSQL(sql, dbsrc, db);
