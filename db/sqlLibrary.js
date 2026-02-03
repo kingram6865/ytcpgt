@@ -59,19 +59,19 @@ export async function addVideo(data, channelid, dbsrc, db) {
   let sql = `INSERT INTO youtube_downloads (keywords, upload_date, caption, description, play_length, url, channel_owner_id, thumbnail, status, rewatch, sequence, playlistid) \
   VALUES (?, date_format(?, '%Y-%m-%d %r'), ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)`;
   sql = formatSQL(sql, values)
-  // console.log(sql)
+
   let results = await executeSQL(sql, dbsrc, db);
   return results.data
 }
 
 export async function addVideoBatch(dataArray, dbsrc, db) {
   const params = [];
-  const rowSql = `(?, date_format(?, '%Y-%m-%d %r'), ?, ?, ?, ?, ?, ?, 1, 0, ?)`;
+  const rowSql = `(?, date_format(?, '%Y-%m-%d %r'), ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)`;
   const valuesSql = dataArray.map(() => rowSql).join(', ');
 
   const sql = `
     INSERT INTO youtube_downloads
-      (keywords, upload_date, caption, description, play_length, url, channel_owner_id, thumbnail, status, rewatch, sequence)
+      (keywords, upload_date, caption, description, play_length, url, channel_owner_id, thumbnail, status, rewatch, sequence, playlistid)
     VALUES ${valuesSql}`;
   
   for (const data of dataArray) {
@@ -85,7 +85,8 @@ export async function addVideoBatch(dataArray, dbsrc, db) {
       data?.url ?? null,
       data.chanId,
       data?.thumbnails ? JSON.stringify(data.thumbnails) : null,
-      data?.sequence ?? null
+      data?.sequence ?? null,
+      data?.playlistid ?? null
     );
   }
 
