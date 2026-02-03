@@ -9,132 +9,10 @@ const database = 'test';
 let channel = process.argv[2];
 let channelApiData, apiChannelId, channelobjid, apiChannelData
 
-
-// import { channelExists, videoExists, getChannel, getVideo, addChannel, addVideo } from './db/sqlLibrary.js';
-// import { videoData, channelData } from './youtube/getData.js';
-// import * as colors from  './utilities/consoleColors.js'
-
-// function highestResThumbnail(input) {
-//   const choices = Object.keys(input)
-// }
-
-// function formatDate(data, format=null) {
-//   let newDate = data.split(/[: T-]/).map(parseFloat)
-//   const year = (newDate[0] < 10) ? `0${newDate[0]}` : newDate[0]
-//   const month = (newDate[1] < 10) ? `0${newDate[1]}` : newDate[1]
-//   const day = (newDate[2] < 10) ? `0${newDate[2]}` : newDate[2]
-//   const hours = (newDate[3] < 10) ? `0${newDate[3]}` : newDate[3]
-//   const minutes = (newDate[4] < 10) ? `0${newDate[4]}` : newDate[4]
-//   const seconds = (newDate[5] < 10) ? `0${newDate[5]}` : newDate[5]
-
-//   if (!format) {
-//     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-//   } else {
-//     return `${year}-${month}-${day}`
-//   }
-// }
-
-// /**
-//  * Extract the videoid from the url
-//  */
-// function videoId(data){
-//   const rePattern = /=/;
-//   let index = rePattern.exec(data)['index'] + 1;
-//   let result = data.substring(index);
-//   return result;
-// }
-
-// /**
-//  * Reformats 'HH:MM:SS' to "HHMMSS". Prepends 0 for digits [0-9]
-//  */
-// function formatDuration(input, version=null){
-//   let timeinfo = [];
-//   let timedata = input
-//   let matches =[/(\d+)H/,/(\d+)M/,/(\d+)S/];
-
-//   for (let k=0; k < matches.length; k++){
-//     timeinfo[k] = (timedata.match(matches[k])) ? timedata.match(matches[k])[1].padStart(2,'0') : '00';
-//   }
-
-//   if (!version) {
-//     return timeinfo.join("");
-//   } else {
-//     return timeinfo.join(":")
-//   }
-// }
-
-// async function buildDataInsertion(url) {
-//   let videoInfo, channelInfo
-//   let videoid = videoId(url)
-//   let video_data = await videoData(videoid)
-//   let channel_data = await channelData(video_data.items[0].snippet.channelId)
-//   let haveVideo = await videoExists(videoid)
-//   let haveChannel = await channelExists(video_data.items[0].snippet.channelId)
-//   let dbChannelInfo = await getChannel(channel_data.items[0].id)
-//   let dbVideoInfo = await getVideo(videoid)
-
-//   videoInfo = {
-//     keywords: video_data.items[0].snippet.tags,
-//     published: formatDate(video_data.items[0].snippet.publishedAt),
-//     title: video_data.items[0].snippet.title,
-//     description: video_data.items[0].snippet.description,
-//     dbDuration: formatDuration(video_data.items[0].contentDetails.duration),
-//     url,
-//     channelObjid: 0,
-//     rewatch: 0,
-//     thumbnails: video_data.items[0].snippet.thumbnails,
-//     channelTitle: video_data.items[0].snippet.channelTitle,
-//     channelId: video_data.items[0].snippet.channelId,
-//     duration: formatDuration(video_data.items[0].contentDetails.duration, 1),
-//     videoId: videoid,
-//     dbData: dbVideoInfo
-//   }
-
-//   channelInfo = {
-//     channelId: channel_data.items[0].id,
-//     title: channel_data.items[0].snippet.title,
-//     description: channel_data.items[0].snippet.description,
-//     customUrl: channel_data.items[0].snippet.customUrl,
-//     created: channel_data.items[0].snippet.publishedAt,
-//     thumbnail: channel_data.items[0].snippet.thumbnails.high.url,
-//     relatedPlaylists: channel_data.items[0].contentDetails.relatedPlaylists,
-//     views: channel_data.items[0].statistics.viewCount,
-//     dbData: dbChannelInfo
-//   }
-  
-//   return {haveChannel, haveVideo, videoInfo, channelInfo}
-// }
-
-// async function processData(data) {
-//   if (data.haveChannel && !data.haveVideo) {
-//     console.log(`Check 1: Channel is archived, but not Video`)
-//   } else if (!data.haveChannel && data.haveVideo) {
-//     console.log(`Check 2: Have Video: ${data.haveVideo}, Do not have Channel: ${data.haveChannel}`)
-//   } else if (!data.haveChannel && !data.haveVideo){
-//     console.log(`Check 3: [${colors.brightYellow}${data.videoInfo.videoid}${colors.Reset}] ${colors.brightRed}Do not have Video${colors.Reset}, ${colors.brightRed}Do not have Channel${colors.Reset}\n=====================================`)
-//     console.log(`${colors.greenOnBlack}Adding Channel${colors.Reset} ${data.channelInfo.channelId}, ${colors.brightBlue}${data.channelInfo.title}${colors.Reset} ${data.channelInfo.customUrl} (${colors.brightMagenta}Since ${formatDate(data.channelInfo.created, 1)}${colors.Reset})`)
-//     let channelInsertResults = await addChannel(data.channelInfo)
-//     let videoInsertResults = await addVideo(data.videoInfo, channelInsertResults.insertId)
-//     console.log(`${colors.greenOnBlack}Added Video   ${colors.Reset} https://youtube.com/watch?v=${data.videoInfo.videoId}, ${colors.brightBlue}${data.videoInfo.title}${colors.Reset} [${colors.brightYellow}${data.videoInfo.duration}${colors.Reset}] objid: [${colors.brightRed}${videoInsertResults.insertId}${colors.Reset}] to Channel objid: [${colors.brightCyan}${channelInsertResults.insertId}${colors.Reset}], ${colors.brightBlue}${data.channelInfo.title}${colors.Reset}\n=====================================================================`)
-//   } else if (data.haveChannel && data.haveVideo){
-//     console.log(`Check 4: ${colors.brightGreen}Have Video and Channel${colors.Reset}`)
-//     console.log(data.channelInfo.dbData, data.videoInfo.dbData)
-//   }
-
-// }
-
-// async function execute(input) {
-//   const data = await buildDataInsertion(input)
-//   processData(data)
-// }
-
-// execute(process.argv[2])
-
 async function main() {
   let channelDbData, playlists
   if (/@/.test(channel)) {
     channel = await getChannelId(channel);
-    console.log(`Line 137: ${channel}`)
   } else {
     // console.log(channel.match(/http*\:\/\//))
     channel = channel.split('/')[4]
@@ -147,44 +25,11 @@ async function main() {
     apiChannelId = channelApiData.items[0].id 
 
     apiChannelData = gatherChannelDataForArchival(channelApiData.items[0])
+    console.log(apiChannelData)
     let channelAdded = await addChannel(apiChannelData, source, database);
     channelobjid = channelAdded.insertId
     
     console.log(`objid: ${channelobjid}, Channel Id: ${apiChannelId}`)
-
-    // let data = channelApiData
-    // let results = await addChannel(data, source, database)
-
-
-    // console.log(chalk.bgAnsi256(196)("Channel Not in Youtube Archive: \n"), JSON.stringify(channelApiData, null, 2))
-    // playlists = await channelPlaylists(channel);
-    
-    // playlists.forEach(element => {
-    //   let id = chalk.ansi256(33)(element.id);
-    //   let title = chalk.ansi256(118)(element.snippet.title);
-    //   let childrenCount = chalk.ansi256(226)(element.contentDetails?.itemCount.toString().padStart(3, ' '));
-    //   let published = chalk.ansi256(206)(formatPublishedDate(element.snippet.publishedAt));
-
-    //   console.log(`${id} ${published} (${childrenCount}) ${title}`)
-    // });
-
-    // for (let i = 0; i < playlists.length; i++) {
-    //   const items = await playlistItems(playlists[i].id);
-    //   let id = chalk.ansi256(33)(playlists[i].id);
-    //   let title = chalk.ansi256(118)(playlists[i].snippet.title);
-    //   let childrenCount = chalk.ansi256(226)(playlists[i].contentDetails?.itemCount.toString().padStart(3, ' '));
-    //   let published = chalk.ansi256(206)(formatPublishedDate(playlists[i].snippet.publishedAt));
-
-    //   console.log(`${id} ${published} (${childrenCount}) ${title}`)
-    //   items.forEach(item => {
-    //     if (!(item.status.privacyStatus === "private")) {
-    //       // console.log(`\t\t${JSON.stringify(item)}`)
-    //       console.log(`\t\t${item.snippet.position.toString().padStart(2, ' ')} ${item.contentDetails.videoId} ${item.snippet.title}`)
-    //     }
-    //   })
-    // }
-
-
   } else {
     channelDbData = await getChannel(channel, source, database);
     channelobjid = channelDbData.objid
@@ -193,26 +38,7 @@ async function main() {
 
   playlists = await channelPlaylists(apiChannelId);
   playlists.sort((a, b) => (a.snippet.publishedAt > b.snippet.publishedAt) ? 1 : (a.snippet.publishedAt < b.snippet.publishedAt) ? -1 : 0)
-  // let parentObjid = chalk.ansi256(228)(channelDbData.objid)
-  // let channelOwnerName = chalk.ansi256(68)(channelDbData.owner_name)
-  // let channelid = chalk.ansi256(82)(channelDbData.channel_id)
-  
-  // console.log(`Youtube Archive Data for channel [${channelid}] ${parentObjid}, ${channelOwnerName}`);
-  // for (const list of playlists) {
-  //   const items = await playlistItems(list.id);
-  //   console.log("\t", list.id, list.snippet.title, `${items.length} items.`)
-  //   items.forEach(item => {
-  //     if (!(item.status.privacyStatus === "private")) {
-  //       // console.log(`\t\t${JSON.stringify(item)}`)
-  //       let title = item.snippet.title
-  //       let videoid = item.contentDetails.videoId
-  //       console.log(`\t\t${item.snippet.position.toString().padStart(2, ' ')} ${videoid} ${title}`)
-  //     }
-  //   })
-  // }
 
-
-  // for (let i = 0; i < 3; i++) {
   for (let i = 0; i < playlists.length; i++) {
     let insertDataList = []
     const items = await playlistItems(playlists[i].id);
@@ -222,35 +48,21 @@ async function main() {
     let published = chalk.ansi256(206)(formatPublishedDate(playlists[i].snippet.publishedAt));
 
     if (!Array.isArray(items) || items.length === 0) continue;
-      
-    //   {
-    //   // console.log(`SKIPPING ${id} ${published} (${childrenCount}) ${title}`);
-    //   continue;
-    // }
 
     console.log(`${id} ${published} (${childrenCount}) ${title}`)
-    // console.log(gatherVideoDataForArchival(items[0], channelobjid))
-
+    
     items?.forEach(item => {
       if (item.status.privacyStatus !== "private") {
-        // console.log(`\t\t${JSON.stringify(item)}`)
-        // console.log(`\t\t${item.snippet.position.toString().padStart(2, ' ')} ${item.contentDetails.videoId} ${item.snippet.title}`)
-        insertDataList.push(gatherVideoDataForArchival(item, channelobjid));
-        // console.log("\t", insertData.playlistid, insertData.sequence, insertData.published, insertData.title, insertData.duration)
+        console.log("\t", `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`, item.snippet.title, `[${item.status.privacyStatus}]`)
+        // insertDataList.push(gatherVideoDataForArchival(item, channelobjid));
       }
     })
 
-    console.log(insertDataList.length, items.length)
+    // console.log(insertDataList.length, items.length)
 
     // let results = await addVideoBatch(insertDataList, source, database);
     // console.log(results);
   }
-
-
-
-
-
-
 
   const final = await closePool(source, database)
   }
