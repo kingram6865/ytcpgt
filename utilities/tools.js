@@ -31,3 +31,45 @@ export function formatPublishedDate(data) {
 
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
+
+export function gatherChannelDataForArchival(data) {
+  // data.title, data.channelId, data.description, data.created, data.views, data.thumbnail, data.customUrl
+  const result = {
+    title: data.snippet.title, 
+    channelId: data.id, 
+    description: data.snippet.description, 
+    created: data.snippet.publishedAt, 
+    views: data.statistics.viewCount, 
+    thumbnail: JSON.stringify(data.snippet.thumbnails), 
+    customUrl: data.snippet.customUrl
+  }
+
+  return result;
+}
+
+export function gatherVideoDataForArchival(data, chanId) {
+  // const keywords = Array.isArray(data?.snippet?.keywords) ? data?.snippet?.keywords.join(',') : (data?.snippet?.keywords ?? '');
+  const result = {
+      keywords: null,
+      published: formatPublishedDate(data?.snippet.publishedAt) ?? null,
+      title: data?.snippet.title ?? null,
+      description: data?.snippet.description ?? null,
+      duration: null,
+      url: `https://www.youtube.com/watch?v=${data?.snippet.resourceId.videoId ?? null}`,
+      chanId,
+      thumbnails: data?.snippet.thumbnails,
+      sequence: data?.snippet.position ?? null,
+      playlistid: data?.snippet.playlistId ?? null
+  }
+
+  return result;
+}
+
+export function chunkArray(arr, size) {
+  if (!Array.isArray(arr)) throw new TypeError('chunkArray: arr must be an array');
+  if (!Number.isInteger(size) || size <= 0) throw new TypeError('chunkArray: size must be a positive integer');
+
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
