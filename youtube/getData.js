@@ -16,6 +16,7 @@ export async function videoData(id) {
 
   try {
     results = await axios.get(url)
+    return results.data;
   } catch (err) {
     console.error('Failed to fetch videoData:', err.message, err.response?.data);
     return [];
@@ -27,10 +28,10 @@ export async function channelData(id) {
   const url = `https://youtube.googleapis.com/youtube/v3/channels?part=snippet,contentDetails,statistics&id=${id}&key=${APIKEY}`
   try {
     results = await axios.get(url)
+    return results.data
   } catch (err) {
     console.error('Failed to fetch ChannelData:', err.message, err.response?.data);
-  } finally {
-    return results.data
+    return { items: []}
   }
 }
 
@@ -70,7 +71,7 @@ export async function playlistItems(id) {
       nextpage = newResults.data.nextPageToken
     }
   } catch (err) {
-    console.error('Failed to fetch playlist items:', err.message, err.response?.data);
+    console.error('Failed to fetch playlist items: \n', err.message, JSON.stringify(err.response?.data, null, 2));
   }
 
   // videoList.sort((a,b) => (a.snippet.publishedAt > b.snippet.publishedAt) ? 1 : (a.snippet.publishedAt < b.snippet.publishedAt) ? -1 : 0)
