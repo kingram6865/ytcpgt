@@ -16,7 +16,7 @@ export function formatDuration(input){
     timeinfo[k] = (timedata.match(matches[k])) ? timedata.match(matches[k])[1].padStart(2,'0') : '00';
   }
 
-  return timeinfo.join("");
+  return {default: timeinfo.join(""), display: timeinfo.join(":")};
 }
 
 export function formatPublishedDate(data) {
@@ -77,3 +77,8 @@ export function chunkArray(arr, size) {
 export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export function toTime (iso) {
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? t : -Infinity;
+};
