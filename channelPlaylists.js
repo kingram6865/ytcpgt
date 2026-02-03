@@ -2,8 +2,8 @@ import chalk from "chalk";
 import { FileManager } from "./lib/fileManager.js";
 import { videoData, channelData, playlistItems, channelSections, getChannelId, channelPlaylists } from './youtube/getData.js'
 import { parseYouTubeUrl } from "./youtube/utils.js";
-import { formatDuration, formatPublishedDate } from "./utilities/tools.js";
-const baseUrl = "https://youtube.googleapis.com/youtube/v3"
+import { formatDuration, formatPublishedDate, chunkArray, sleep } from "./utilities/tools.js";
+// const baseUrl = "https://youtube.googleapis.com/youtube/v3"
 
 async function channelInfo(input) {
   let output = []
@@ -58,6 +58,47 @@ async function getPlaylistItems(id) {
   return videos;
 }
 
+async function gatherAllPlaylistItems(listOfPlaylists) {
+  let uniqueVideoIds, allVideoMeta;
+  const batchSize = 50;
+  const waitMs = 600;
+  const videoIds = [];
+
+  for (const playlist of listOfPlaylists) {
+    // console.log(playlist.id, playlist.snippet.channelTitle, `"${playlist.snippet.title}", `, `items in playlist => ${chalk.ansi256(226)(playlist.contentDetails.itemCount)}`)
+    let allItems = await getPlaylistItems(playlist.id)
+    // allItems.forEach(item => console.log(item.snippet.position, item.contentDetails.videoId, item.contentDetails.videoPublishedAt, item.status.privacyStatus));
+    for (const item of allItems) {
+      const vid = item?.contentDetails?.videoId;
+      if (vid) videoIds.push(vid);
+    }
+
+    uniqueVideoIds = Array.from(new Set(videoIds));
+    const batches = chunkArray(uniqueVideoIds, batchSize);
+    allVideoMeta = [];
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
+      console.log(chalk.cyan(`[videoData] batch ${i + 1}/${batches.length}`), `(${batch.length} ids)`);
+      const items = await videoData(batch);
+      if (Array.isArray(items)) allVideoMeta.push(...items);
+
+      // Wait a bit before gathering the next batch
+      if (i < batches.length - 1 && waitMs > 0) {
+        await sleep(waitMs);
+      }
+    }
+  }
+
+  console.log(`There are ${listOfPlaylists.length} playlists with a Total number of videoIds => ${videoIds.length} and a Total Number of Unique videoIds => ${uniqueVideoIds.length} meaning ${videoIds.length - uniqueVideoIds.length} were repeated.`)
+  return {
+    playlistCount: listOfPlaylists.length,
+    itemCount: videoIds.length,
+    uniqueVideoCount: uniqueVideoIds.length,
+    allChannelVideos: allVideoMeta, // combined results from all batches
+  };
+}
+
+
 async function execute(input) {
   // const result = await listTables(55, 'random_facts');
   // console.log('Query completed successfully');
@@ -76,14 +117,12 @@ async function execute(input) {
     console.log(`${message} ${chalk.ansi256(214)("channel handle:")} ${chalk.ansi256(184)(urlType.handle)}`)
     const channelid = await getChannelId(urlType.handle)
     console.log(`The channel Id is ${chalk.ansi256(190)(channelid)}`)
-    // await channelInfo(channelid)
+    const allChannelData = await channelInfo(channelid)
     const listOfPlaylists = await getChannelPlaylists(channelid)
+    const allPlaylistsData = await gatherAllPlaylistItems(listOfPlaylists);
+    console.log(`Dat for ${allPlaylistsData.allChannelVideos.length} youtube videos retrieved.`)
 
-    for (const playlist of listOfPlaylists) {
-      console.log(playlist.id, playlist.snippet.channelTitle, `"${playlist.snippet.title}", `, `items in playlist => ${chalk.ansi256(226)(playlist.contentDetails.itemCount)}`)
-      let allItems = await getPlaylistItems(playlist.id)
-      allItems.forEach(item => console.log(item.snippet.position, item.contentDetails.videoId, item.contentDetails.videoPublishedAt, item.status.privacyStatus));
-    }
+
   } else if (urlType.type === 'playlist') {
     console.log(`${message} ${chalk.ansi256(214)("playlist Id:")} ${chalk.ansi256(184)(urlType.playlistId)}`)
 
