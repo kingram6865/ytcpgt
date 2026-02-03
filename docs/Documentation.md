@@ -47,11 +47,6 @@ The response data JSON for the API request has this form:
 }
 ```
 
-
-
-
-
-
 ## `youtube/getData.js`
 
 ### `videoData(id)`
