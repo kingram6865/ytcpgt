@@ -49,11 +49,14 @@ export async function playlistItems(id) {
 
   const url = `${API}playlistItems?${params}`
 
-  // const url = `https://youtube.googleapis.com/youtube/v3/playlistItems?maxResults=50&part=snippet,contentDetails,status&playlistId=${id}&key=${APIKEY}`
   try {
     // console.log(`Retrieving playlist ${id} page ${i}`)
     results = await axios.get(url)
-    videoList = [...videoList, ...results.data.items]
+    // videoList = [...videoList, ...results.data.items] // Need to exclude status.privacyStatus = 'private'
+    videoList.push(
+      ...results.data.items.filter(item => item?.status?.privacyStatus !== 'private')
+    );
+
     let nextpage = results.data.nextPageToken
     while (nextpage) {
       i = i + 1
@@ -67,7 +70,10 @@ export async function playlistItems(id) {
       let nextPageUrl = `${API}playlistItems?${newParams.toString()}`
       // console.log(`Retrieving playlist ${id} page ${i}`)
       let newResults = await axios.get(nextPageUrl)
-      videoList.push(...newResults.data.items)
+      // videoList.push(...newResults.data.items) // Need to exclude status.privacyStatus = 'private'
+      videoList.push(
+        ...newResults.data.items.filter(item => item?.status?.privacyStatus !== 'private')
+      );
       nextpage = newResults.data.nextPageToken
     }
   } catch (err) {
