@@ -59,33 +59,81 @@ async function getPlaylistItems(id) {
 }
 
 async function gatherAllPlaylistItems(listOfPlaylists) {
-  let uniqueVideoIds, allVideoMeta;
   const batchSize = 50;
   const waitMs = 600;
   const videoIds = [];
 
+  // 1) Collect ALL ids first
   for (const playlist of listOfPlaylists) {
-    // console.log(playlist.id, playlist.snippet.channelTitle, `"${playlist.snippet.title}", `, `items in playlist => ${chalk.ansi256(226)(playlist.contentDetails.itemCount)}`)
-    let allItems = await getPlaylistItems(playlist.id)
-    // allItems.forEach(item => console.log(item.snippet.position, item.contentDetails.videoId, item.contentDetails.videoPublishedAt, item.status.privacyStatus));
+    const allItems = await getPlaylistItems(playlist.id);
+    // const filtered= allItems.filter(item => item.status.privacyStatus !== 'private')
+
     for (const item of allItems) {
       const vid = item?.contentDetails?.videoId;
       if (vid) videoIds.push(vid);
     }
+  }
 
-    uniqueVideoIds = Array.from(new Set(videoIds));
-    const batches = chunkArray(uniqueVideoIds, batchSize);
-    allVideoMeta = [];
-    for (let i = 0; i < batches.length; i++) {
-      const batch = batches[i];
-      console.log(chalk.cyan(`[videoData] batch ${i + 1}/${batches.length}`), `(${batch.length} ids)`);
-      const items = await videoData(batch);
-      if (Array.isArray(items)) allVideoMeta.push(...items);
+  // 2) De-dupe once
+  const uniqueVideoIds = Array.from(new Set(videoIds));
 
-      // Wait a bit before gathering the next batch
-      if (i < batches.length - 1 && waitMs > 0) {
-        await sleep(waitMs);
-      }
+  // 3) Batch once
+  const batches = chunkArray(uniqueVideoIds, batchSize);
+
+  const allVideoMeta = [];
+
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i];
+
+    // // sanity: show batch size and whether there are empties/dupes
+    // const empties = batch.filter((v) => !String(v).trim()).length;
+    // const uniqueInBatch = new Set(batch).size;
+
+    console.log(chalk.cyan(`[videoData] batch ${i + 1}/${batches.length}`), `(${batch.length} ids)`);
+
+    const result = await videoData(batch);
+    const items = result.items.sort((a, b) => 
+      (a.snippet.publishedAt > b.snippet.publishedAt) ? 1
+      : (a.snippet.publishedAt < b.snippet.publishedAt) ? -1
+      : 0
+    )
+
+    const itemsArr = Array.isArray(result?.items) ? result.items : [];
+    console.log(chalk.magenta(`[videoData] batch ${i + 1} returned=${itemsArr.length}`));
+
+    if (Array.isArray(items)) {
+      console.log(chalk.yellow(`[videoData] batch ${i + 1} returned ${items.length} items`));
+      // items.forEach((item, j) => console.log(`[${(j + 1).toString().padStart(2, " ")}]`, formatDuration(item.contentDetails.duration).display, formatPublishedDate(item.snippet.publishedAt), item.snippet.title))
+      let desiredData = items.map(item => {
+        return {
+          channelId: item.snippet.channelId,
+          channelTitle: item.snippet.channelTitle,
+          // playlistId: playlist.id,
+          videoId: item.id,
+          publishedAt: item.snippet.publishedAt,
+          title: item.snippet.title,
+          description: item.snippet.description,
+          thumbnails: item.snippet.thumbnails,
+          tags: item.snippet.tags,
+          duration: item.contentDetails.duration,
+          views: item.statistics.viewCount,
+          likes: item.statistics.likeCount,
+          comments: item.statistics.commentCount,
+        }
+      })
+      
+    
+
+
+
+      allVideoMeta.push(...desiredData);
+    } else {
+      // If videoData failed and returned undefined/null, you’ll see it
+      console.log(chalk.yellow(`[videoData] batch ${i + 1} returned no items`));
+    }
+
+    if (i < batches.length - 1 && waitMs > 0) {
+      await sleep(waitMs);
     }
   }
 
@@ -120,7 +168,8 @@ async function execute(input) {
     const allChannelData = await channelInfo(channelid)
     const listOfPlaylists = await getChannelPlaylists(channelid)
     const allPlaylistsData = await gatherAllPlaylistItems(listOfPlaylists);
-    console.log(`Dat for ${allPlaylistsData.allChannelVideos.length} youtube videos retrieved.`)
+    console.log(`Data for ${allPlaylistsData.allChannelVideos.length} youtube videos retrieved.`)
+    console.log(allPlaylistsData.allChannelVideos[0])
 
 
   } else if (urlType.type === 'playlist') {
