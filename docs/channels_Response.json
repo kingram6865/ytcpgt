@@ -1,0 +1,55 @@
+{
+  "kind": "youtube#channelListResponse",
+  "etag": "sfSBYCAXZnt4F1kl-24Rq-2BrsI",
+  "pageInfo": {
+    "totalResults": 1,
+    "resultsPerPage": 5
+  },
+  "items": [
+    {
+      "kind": "youtube#channel",
+      "etag": "Z9ApTbqsNjbjIfupxGzFgvjbmr4",
+      "id": "UCa0fY4HFzbLfaZVHpMEjPXQ",
+      "snippet": {
+        "title": "GD Non-Attorney Pro Se Consultant (GD NAPSC)",
+        "description": "Welcome to the GD NAPSC YouTube Channel! Watch \"LIVE\" footage of a Pro Se Litigant going head-to-head in real time against Administrative Child Support Hearing Officers, Seasoned Attorneys, and even Circuit Court Judges! No theory. No gimmicks! My Perspective and My Reality. Check out Pro Se Courtroom Battles: Live Legal Strategies, Tips, and Real-Time Case Insights for Self-Represented Litigants! Link: https://youtube.com/playlist?list=PLPvFfVu0wYtZiNWrNI8Z6Wjuufne7ezpf&si=ZEiNVgHm5AAt84fD Persistence, preparation, and the will to stand tall can make all the difference. COMMENT, LIKE, SHARE, and SUBSCRIBE! DISCLAIMER: I am not an attorney. Nothing on this channel is legal advice. All content is shared for educational purposes under Fair Use (Section 107, Copyright Act of 1976). #duet, #viral, #childsupport, #firstamendment, #veteran, #judicialmisconduct, #florida, #insurance, #statefarm, #corruption, #Racism,#Tampa,#BlackMen,#TampaCityCouncil, #prose, #courtcorruption ",
+        "customUrl": "@gregdossgdnapsc",
+        "publishedAt": "2012-03-21T03:26:02Z",
+        "thumbnails": {
+          "default": {
+            "url": "https://yt3.ggpht.com/UOh3zI8X3XfKKFjer5VzAvSTK-J-sRflYSX6T5lY-p9QNXx5SczPfWRqEnUfYfHBpeh1r-na=s88-c-k-c0x00ffffff-no-rj",
+            "width": 88,
+            "height": 88
+          },
+          "medium": {
+            "url": "https://yt3.ggpht.com/UOh3zI8X3XfKKFjer5VzAvSTK-J-sRflYSX6T5lY-p9QNXx5SczPfWRqEnUfYfHBpeh1r-na=s240-c-k-c0x00ffffff-no-rj",
+            "width": 240,
+            "height": 240
+          },
+          "high": {
+            "url": "https://yt3.ggpht.com/UOh3zI8X3XfKKFjer5VzAvSTK-J-sRflYSX6T5lY-p9QNXx5SczPfWRqEnUfYfHBpeh1r-na=s800-c-k-c0x00ffffff-no-rj",
+            "width": 800,
+            "height": 800
+          }
+        },
+        "localized": {
+          "title": "GD Non-Attorney Pro Se Consultant (GD NAPSC)",
+          "description": "Welcome to the GD NAPSC YouTube Channel! Watch \"LIVE\" footage of a Pro Se Litigant going head-to-head in real time against Administrative Child Support Hearing Officers, Seasoned Attorneys, and even Circuit Court Judges! No theory. No gimmicks! My Perspective and My Reality. Check out Pro Se Courtroom Battles: Live Legal Strategies, Tips, and Real-Time Case Insights for Self-Represented Litigants! Link: https://youtube.com/playlist?list=PLPvFfVu0wYtZiNWrNI8Z6Wjuufne7ezpf&si=ZEiNVgHm5AAt84fD Persistence, preparation, and the will to stand tall can make all the difference. COMMENT, LIKE, SHARE, and SUBSCRIBE! DISCLAIMER: I am not an attorney. Nothing on this channel is legal advice. All content is shared for educational purposes under Fair Use (Section 107, Copyright Act of 1976). #duet, #viral, #childsupport, #firstamendment, #veteran, #judicialmisconduct, #florida, #insurance, #statefarm, #corruption, #Racism,#Tampa,#BlackMen,#TampaCityCouncil, #prose, #courtcorruption "
+        },
+        "country": "US"
+      },
+      "contentDetails": {
+        "relatedPlaylists": {
+          "likes": "",
+          "uploads": "UUa0fY4HFzbLfaZVHpMEjPXQ"
+        }
+      },
+      "statistics": {
+        "viewCount": 1180195,
+        "subscriberCount": 12400,
+        "hiddenSubscriberCount": false,
+        "videoCount": 1620
+      }
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "kind": "youtube#playlist",
+  "etag": "leqzsQd8K21TF1-Opk8A5GDp5PU",
+  "id": "PL2TjQf2riraKkQz0rZVBOi_73QFPxjJZQ",
+  "snippet": {
+    "publishedAt": "2025-07-31T15:53:08.992175Z",
+    "channelId": "UCuVaB0t5qJRxP55gEl6TuKQ",
+    "title": "Wait Wait...Don't Tell Me! Extras",
+    "description": "Even more from the Wait Wait...Don't Tell Me! team. Because who wouldn't want even more?",
+    "thumbnails": {
+      "default": {
+        "url": "https://i.ytimg.com/vi/1M20ZgShsWg/default.jpg",
+        "width": 120,
+        "height": 90
+      },
+      "medium": {
+        "url": "https://i.ytimg.com/vi/1M20ZgShsWg/mqdefault.jpg",
+        "width": 320,
+        "height": 180
+      },
+      "high": {
+        "url": "https://i.ytimg.com/vi/1M20ZgShsWg/hqdefault.jpg",
+        "width": 480,
+        "height": 360
+      },
+      "standard": {
+        "url": "https://i.ytimg.com/vi/1M20ZgShsWg/sddefault.jpg",
+        "width": 640,
+        "height": 480
+      },
+      "maxres": {
+        "url": "https://i.ytimg.com/vi/1M20ZgShsWg/maxresdefault.jpg",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    "channelTitle": "NPR Podcasts",
+    "localized": {
+      "title": "Wait Wait...Don't Tell Me! Extras",
+      "description": "Even more from the Wait Wait...Don't Tell Me! team. Because who wouldn't want even more?"
+    }
+  },
+  "contentDetails": {
+    "itemCount": 17
+  }
+}
