@@ -47,7 +47,7 @@ export function gatherChannelDataForArchival(data) {
   return result;
 }
 
-export function gatherVideoDataForArchival(data, chanId) {
+export function gatherVideoDataForArchival(data, chanId, playlistTitle) {
   // const keywords = Array.isArray(data?.snippet?.keywords) ? data?.snippet?.keywords.join(',') : (data?.snippet?.keywords ?? '');
   const result = {
       keywords: null,
@@ -59,7 +59,8 @@ export function gatherVideoDataForArchival(data, chanId) {
       chanId,
       thumbnails: data?.snippet.thumbnails,
       sequence: data?.snippet.position ?? null,
-      playlistid: data?.snippet.playlistId ?? null
+      playlistid: data?.snippet.playlistId ?? null,
+      playlistTitle
   }
 
   return result;
