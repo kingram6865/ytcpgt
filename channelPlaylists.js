@@ -2,7 +2,7 @@ import chalk from "chalk";
 import { FileManager } from "./lib/fileManager.js";
 import { videoData, channelData, playlistItems, channelSections, getChannelId, channelPlaylists } from './youtube/getData.js'
 import { parseYouTubeUrl } from "./youtube/utils.js";
-import { formatDuration, formatPublishedDate, chunkArray, sleep } from "./utilities/tools.js";
+import { formatDuration, formatPublishedDate, chunkArray, sleep, toTime } from "./utilities/tools.js";
 // const baseUrl = "https://youtube.googleapis.com/youtube/v3"
 
 async function channelInfo(input) {
@@ -51,103 +51,130 @@ async function getVideoInfo(input) {
 }
 
 async function getPlaylistItems(id) {
-  const videos = await playlistItems(id);
-  // videos.forEach(video => {
-  //   console.log(video)
-  // })
-  return videos;
+  const videoInfoSet = await playlistItems(id);
+  return videoInfoSet;
 }
 
 async function gatherAllPlaylistItems(listOfPlaylists) {
   const batchSize = 50;
   const waitMs = 600;
-  const videoIds = [];
-
-  // 1) Collect ALL ids first
+  
+  // Map videoId -> best occurrence (newest playlist-added date)
+  const bestOccByVideoId = new Map();
+  let itemCount = 0;
+  
+  // 1) Collect playlist occurrences, keep only the newest per videoId
   for (const playlist of listOfPlaylists) {
     const allItems = await getPlaylistItems(playlist.id);
-    // const filtered= allItems.filter(item => item.status.privacyStatus !== 'private')
 
     for (const item of allItems) {
-      const vid = item?.contentDetails?.videoId;
-      if (vid) videoIds.push(vid);
+      const videoId = item?.contentDetails?.videoId;
+      if (!videoId) continue;
+
+      itemCount += 1;
+
+      // This is the date that differs across occurrences
+      const playlistAddedAt = item?.snippet?.publishedAt ?? null;
+
+      const occ = {
+        videoId,
+        // playlist provenance
+        playlistId: playlist.id,
+        playlistTitle: playlist?.snippet?.title ?? null,
+        playlistChannelTitle: playlist?.snippet?.channelTitle ?? null,
+        // playlist item provenance
+        playlistItemId: item?.id ?? null,
+        playlistPosition: item?.snippet?.position ?? null,
+        playlistAddedAt, // <-- used for dedupe choice
+        // optional: keep if you want it in output
+        videoPublishedAt: item?.contentDetails?.videoPublishedAt ?? null,
+      };
+
+      const prev = bestOccByVideoId.get(videoId);
+      if (!prev) {
+        bestOccByVideoId.set(videoId, occ);
+        continue;
+      }
+
+      // Keep newest occurrence based on playlistAddedAt
+      if (toTime(occ.playlistAddedAt) > toTime(prev.playlistAddedAt)) {
+        bestOccByVideoId.set(videoId, occ);
+      }
     }
   }
 
-  // 2) De-dupe once
-  const uniqueVideoIds = Array.from(new Set(videoIds));
-
-  // 3) Batch once
+  const uniqueVideoIds = Array.from(bestOccByVideoId.keys());
   const batches = chunkArray(uniqueVideoIds, batchSize);
+  const allChannelVideos = [];
+  const missingVideoIds = [];
 
-  const allVideoMeta = [];
-
+  // 2) Fetch videos.list data in batches and attach the best occurrence fields
   for (let i = 0; i < batches.length; i++) {
     const batch = batches[i];
-
-    // // sanity: show batch size and whether there are empties/dupes
-    // const empties = batch.filter((v) => !String(v).trim()).length;
-    // const uniqueInBatch = new Set(batch).size;
-
     console.log(chalk.cyan(`[videoData] batch ${i + 1}/${batches.length}`), `(${batch.length} ids)`);
 
     const result = await videoData(batch);
-    const items = result.items.sort((a, b) => 
-      (a.snippet.publishedAt > b.snippet.publishedAt) ? 1
-      : (a.snippet.publishedAt < b.snippet.publishedAt) ? -1
-      : 0
-    )
+    const items = Array.isArray(result?.items) ? result.items : [];
+    console.log(chalk.magenta(`[videoData] batch ${i + 1} returned=${items.length}`));
 
-    const itemsArr = Array.isArray(result?.items) ? result.items : [];
-    console.log(chalk.magenta(`[videoData] batch ${i + 1} returned=${itemsArr.length}`));
+    const videoById = new Map(items.map((v) => [v.id, v]));
 
-    if (Array.isArray(items)) {
-      console.log(chalk.yellow(`[videoData] batch ${i + 1} returned ${items.length} items`));
-      // items.forEach((item, j) => console.log(`[${(j + 1).toString().padStart(2, " ")}]`, formatDuration(item.contentDetails.duration).display, formatPublishedDate(item.snippet.publishedAt), item.snippet.title))
-      let desiredData = items.map(item => {
-        return {
-          channelId: item.snippet.channelId,
-          channelTitle: item.snippet.channelTitle,
-          // playlistId: playlist.id,
-          videoId: item.id,
-          publishedAt: item.snippet.publishedAt,
-          title: item.snippet.title,
-          description: item.snippet.description,
-          thumbnails: item.snippet.thumbnails,
-          tags: item.snippet.tags,
-          duration: item.contentDetails.duration,
-          views: item.statistics.viewCount,
-          likes: item.statistics.likeCount,
-          comments: item.statistics.commentCount,
-        }
-      })
-      
-    
+    // Track missing IDs (private/deleted/etc.)
+    for (const vid of batch) {
+      if (!videoById.has(vid)) missingVideoIds.push(vid);
+    }
 
+    // Build final outputs: one row per videoId (best occurrence only)
+    for (const vid of batch) {
+      const video = videoById.get(vid);
+      if (!video) continue;
 
+      const occ = bestOccByVideoId.get(vid);
 
-      allVideoMeta.push(...desiredData);
-    } else {
-      // If videoData failed and returned undefined/null, you’ll see it
-      console.log(chalk.yellow(`[videoData] batch ${i + 1} returned no items`));
+      allChannelVideos.push({
+        // --- chosen playlist provenance (newest occurrence) ---
+        playlistId: occ.playlistId,
+        playlistTitle: occ.playlistTitle,
+        playlistChannelTitle: occ.playlistChannelTitle,
+        playlistItemId: occ.playlistItemId,
+        playlistPosition: occ.playlistPosition,
+        playlistAddedAt: occ.playlistAddedAt,
+        videoPublishedAt: occ.videoPublishedAt,
+
+        // --- video resource fields ---
+        videoId: video.id,
+        channelId: video?.snippet?.channelId ?? null,
+        channelTitle: video?.snippet?.channelTitle ?? null,
+        publishedAt: video?.snippet?.publishedAt ?? null,
+        title: video?.snippet?.title ?? null,
+        description: video?.snippet?.description ?? null,
+        thumbnails: video?.snippet?.thumbnails ?? null,
+        tags: video?.snippet?.tags ?? null,
+        duration: video?.contentDetails?.duration ?? null,
+        views: video?.statistics?.viewCount ?? null,
+        likes: video?.statistics?.likeCount ?? null,
+        comments: video?.statistics?.commentCount ?? null,
+      });
     }
 
     if (i < batches.length - 1 && waitMs > 0) {
       await sleep(waitMs);
     }
   }
-
-  console.log(`There are ${listOfPlaylists.length} playlists with a Total number of videoIds => ${videoIds.length} and a Total Number of Unique videoIds => ${uniqueVideoIds.length} meaning ${videoIds.length - uniqueVideoIds.length} were repeated.`)
+  
   return {
     playlistCount: listOfPlaylists.length,
-    itemCount: videoIds.length,
+    itemCount,
     uniqueVideoCount: uniqueVideoIds.length,
-    allChannelVideos: allVideoMeta, // combined results from all batches
+    missingCount: missingVideoIds.length,
+    missingVideoIds,
+    allChannelVideos
   };
 }
 
 
 async function execute(input) {
+  const lz = new FileManager('./data');
   // const result = await listTables(55, 'random_facts');
   // console.log('Query completed successfully');
   // console.log('Result:', result);
@@ -160,29 +187,48 @@ async function execute(input) {
     const videoInfo = await getVideoInfo(urlType.videoId);
   } else if (urlType.type === 'channel-id') {
     console.log(`${message} ${chalk.ansi256(214)("channel Id:")} ${chalk.ansi256(184)(urlType.channelId)}`)
-    await channelInfo(urlType.channelId)
+    const channelSections = await channelInfo(urlType.channelId)
+
   } else if (urlType.type === 'channel-handle') {
-    console.log(`${message} ${chalk.ansi256(214)("channel handle:")} ${chalk.ansi256(184)(urlType.handle)}`)
     const channelid = await getChannelId(urlType.handle)
-    console.log(`The channel Id is ${chalk.ansi256(190)(channelid)}`)
-    const allChannelData = await channelInfo(channelid)
+    console.log(`${message} ${chalk.ansi256(214)("channel handle:")} ${chalk.ansi256(184)(urlType.handle)} and channel Id is ${chalk.ansi256(190)(channelid)}`)
+
     const listOfPlaylists = await getChannelPlaylists(channelid)
     const allPlaylistsData = await gatherAllPlaylistItems(listOfPlaylists);
-    console.log(`Data for ${allPlaylistsData.allChannelVideos.length} youtube videos retrieved.`)
-    console.log(allPlaylistsData.allChannelVideos[0])
+    let dirName = listOfPlaylists[0].snippet.channelTitle.replace(/\./g, '').replace(/\s+/g, '_');
 
+    console.log(`Data for a total of ${chalk.ansi256(77)(allPlaylistsData.allChannelVideos.length)} youtube videos retrieved.`)
+    console.log(
+      `There are ${allPlaylistsData.playlistCount} playlists consisting of`, 
+      `${allPlaylistsData.itemCount} total videoIds. There are`,
+      `${allPlaylistsData.uniqueVideoCount} unique videoIds meaning`,
+      `${allPlaylistsData.playlistCount - allPlaylistsData.uniqueVideoCount} were repeated across the playlists.`
+    );
+    
+    listOfPlaylists.forEach(playlist => {
+      console.log(
+        `Playlist ${chalk.ansi256(77)(playlist.id)}`,
+        `named ${chalk.ansi256(81)(playlist.snippet.title)}`,
+        `has ${chalk.ansi256(66)(playlist.contentDetails.itemCount)} items`
+      )
+    });
+
+    console.log(chalk.ansi256(99)(`Results saved to`), `${chalk.ansi256(55)("./data/" + dirName + "/videos.json")}`)
+    lz.writeJSON(`videos.json`, allPlaylistsData, true, dirName)
 
   } else if (urlType.type === 'playlist') {
     console.log(`${message} ${chalk.ansi256(214)("playlist Id:")} ${chalk.ansi256(184)(urlType.playlistId)}`)
+    const allPlaylistsData = await gatherAllPlaylistItems([{id: urlType.playlistId}]);
+    allPlaylistsData.allChannelVideos.forEach(video => {
+      console.log(video.title)
+    })
 
+  } else if (urlType.type === 'video-playlist') {
+    console.log(`${message} ${chalk.ansi256(220)("playlist Id:")} ${chalk.ansi256(77)(urlType.playlistId)} videoId: ${urlType.videoId}, Position ${urlType.index}`)
+    const allPlaylistsData = await gatherAllPlaylistItems([{id: urlType.playlistId}]);
+    console.log(allPlaylistsData) 
   }
-  
 
-  // const channelId = await getChannelId(input);
-  // console.log(channelId)
-
-
-  // const lz = new FileManager('./data')
   // const getVideoInfo = await videoData(input)
   // const channelInfo = await channelData(getVideoInfo[0].snippet.channelId)
   // // console.log(channelInfo.items[0].contentDetails)
