@@ -11,7 +11,7 @@ export async function videoData(id) {
   } else {
     idList = id
   }
-  
+
   const url = `${API}videos?part=snippet,contentDetails,statistics&id=${idList}&key=${APIKEY}`
 
   try {
@@ -20,7 +20,7 @@ export async function videoData(id) {
   } catch (err) {
     console.error('Failed to fetch videoData:', err.message, err.response?.data);
     return [];
-  } 
+  }
 }
 
 export async function channelData(id) {
@@ -39,7 +39,7 @@ export async function playlistItems(id) {
   let results
   let i = 1;
   let videoList = []
-  
+
   const params = new URLSearchParams({
     maxResults: 50,
     part: 'id,snippet,contentDetails,status',
@@ -120,7 +120,7 @@ export async function channelPlaylists(id) {
       ...(pageToken && {pageToken})
     });
 
-    const url = `${API}playlists?${params.toString()}`;    
+    const url = `${API}playlists?${params.toString()}`;
 
     const results = await axios.get(url)
     playlists = [ ...playlists, ...results.data.items]
@@ -165,7 +165,7 @@ export async function getChannelUploads(channel) {
       ...(pageToken && {pageToken})
     });
 
-    const url = `${API}playlistItems?${params.toString()}`;    
+    const url = `${API}playlistItems?${params.toString()}`;
     const results = await axios.get(url)
 
     pageToken = results.data.nextPageToken ?? null;
@@ -186,5 +186,37 @@ export async function getChannelUploads(channel) {
   } while (pageToken);
 
   // console.log(playlists)
-  return playlists;  
+  return playlists;
+}
+
+/**
+ * Fetch video details from YouTube API
+ * @param {Array<string>} videoIds - Array of video IDs (max 50)
+ * @returns {Promise<Object>} - Object mapping videoId to details
+ */
+export async function fetchVideoDetails(videoIds) {
+  const idsParam = videoIds.join(',');
+  const url = `${API}videos?part=snippet,contentDetails&id=${idsParam}&key=${APIKEY}`;
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`YouTube API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  // Create mapping: videoId -> { tags, duration }
+  const result = {};
+
+  if (data.items && Array.isArray(data.items)) {
+    data.items.forEach(item => {
+      result[item.id] = {
+        tags: item.snippet?.tags?.join(",") || [],
+        duration: item.contentDetails.duration
+      };
+    });
+  }
+
+  return result;
 }
