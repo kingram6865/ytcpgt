@@ -1,19 +1,31 @@
+import chalk from "chalk";
+
 export function formatDuration(input){
   /**
    * Youtube metadata contains a duration field in the form PT99H99M99S
-   * 
+   *
    * The duration data in the video data is in ISO 8601 format (https://www.w3.org/TR/NOTE-datetime)
    * E.g.: PT11M58S
-   * 
+   *
    * This function converts it to a string of digits
    */
 
   let timeinfo = [];
   let timedata = input
-  let matches =[/(\d+)H/,/(\d+)M/,/(\d+)S/];
 
-  for (let k=0; k < matches.length; k++){
-    timeinfo[k] = (timedata.match(matches[k])) ? timedata.match(matches[k])[1].padStart(2,'0') : '00';
+  if (/^\d+$/.test(timedata)) {
+    timedata = timedata.padStart(6, '0');
+
+    // Extract pairs of digits for HH, MM, SS
+    timeinfo[0] = timedata.substring(0, 2); // HH
+    timeinfo[1] = timedata.substring(2, 4); // MM
+    timeinfo[2] = timedata.substring(4, 6); // SS
+  } else {
+    let matches =[/(\d+)H/,/(\d+)M/,/(\d+)S/];
+
+    for (let k=0; k < matches.length; k++){
+      timeinfo[k] = (timedata.match(matches[k])) ? timedata.match(matches[k])[1].padStart(2,'0') : '00';
+    }
   }
 
   return {default: timeinfo.join(""), display: timeinfo.join(":")};
@@ -35,12 +47,12 @@ export function formatPublishedDate(data) {
 export function gatherChannelDataForArchival(data) {
   // data.title, data.channelId, data.description, data.created, data.views, data.thumbnail, data.customUrl
   const result = {
-    title: data.snippet.title, 
-    channelId: data.id, 
-    description: data.snippet.description, 
-    created: data.snippet.publishedAt, 
-    views: data.statistics.viewCount, 
-    thumbnail: JSON.stringify(data.snippet.thumbnails), 
+    title: data.snippet.title,
+    channelId: data.id,
+    description: data.snippet.description,
+    created: data.snippet.publishedAt,
+    views: data.statistics.viewCount,
+    thumbnail: JSON.stringify(data.snippet.thumbnails),
     customUrl: data.snippet.customUrl
   }
 
@@ -49,13 +61,35 @@ export function gatherChannelDataForArchival(data) {
 
 export function gatherVideoDataForArchival(data, chanId, playlistTitle) {
   // const keywords = Array.isArray(data?.snippet?.keywords) ? data?.snippet?.keywords.join(',') : (data?.snippet?.keywords ?? '');
+  const videoId = data?.snippet?.resourceId?.videoId ?? null;
+
+  // console.log("(tools.js - Line 66)", {
+  //   title: data?.snippet?.title,
+  //   videoId,
+  //   equalsNull: videoId === null,
+  //   equalsUndefined: videoId === undefined,
+  //   booleanValue: Boolean(videoId),
+  // });
+
+  if (!videoId) {
+    // console.log("ENTERED MISSING VIDEO BLOCK");
+    console.warn("Skipping playlist item with missing videoId:", {
+      title: data?.snippet?.title,
+      playlistid: data?.snippet?.playlistId,
+      position: data?.snippet?.position ?? "No position",
+    });
+
+    return null
+  }
+
   const result = {
       keywords: null,
       published: formatPublishedDate(data?.snippet.publishedAt) ?? null,
       title: data?.snippet.title ?? null,
       description: data?.snippet.description ?? null,
       duration: null,
-      url: `https://www.youtube.com/watch?v=${data?.snippet.resourceId.videoId ?? null}`,
+      videoId,
+      url: `https://www.youtube.com/watch?v=${videoId}`,
       chanId,
       thumbnails: data?.snippet.thumbnails,
       sequence: data?.snippet.position ?? null,
@@ -83,3 +117,53 @@ export function toTime (iso) {
   const t = Date.parse(iso);
   return Number.isFinite(t) ? t : -Infinity;
 };
+
+const getPriorityScore = (item) => {
+  const priorityRules = [
+    { condition: (item) => item.playlistid && !item.playlistid.startsWith('UU'), priority: 3 },
+    { condition: (item) => !item.playlistid?.startsWith('UU'), priority: 2 },
+    { condition: (item) => !item.playlistid, priority: 1 },
+  ];
+
+  for (const rule of priorityRules) {
+    if (rule.condition(item)) return rule.priority;
+  }
+  return 0;
+};
+
+export function deduplicateWithPriority(array, keyField) {
+  return Array.from(
+    array.reduce((map, item) => {
+      const key = item[keyField];
+      const existing = map.get(key);
+      const itemScore = getPriorityScore(item)
+      const existingScore = existing ? getPriorityScore(existing) : -1;
+
+      // console.log(`${chalk.ansi256(68)(item.title)} [${item.playlistid}] |`, (existing) ? `${chalk.ansi256(196)(existing.title)} ${existing.playlistTitle} | ${existing.playlistid}`  : chalk.ansi256(148)(`No duplicate`))
+
+
+      if (!existing || itemScore > existingScore) {
+        // console.log('tools.js Line 113: ', item.playlistTitle, item.playlistid)
+        map.set(key, item);
+      }
+
+      return map;
+    }, new Map())
+  ).map(([_, value]) => value);
+}
+
+/**
+ * Extract YouTube video ID from normalized URL
+ * @param {string} url - Normalized YouTube URL (format: https://youtube.com/watch?v=ID)
+ * @returns {string|null} - Video ID or null if not found
+ */
+export function extractVideoId(url) {
+    if (!url) return null;
+
+    try {
+        const urlObj = new URL(url);
+        return urlObj.searchParams.get('v');
+    } catch {
+        return null; // Invalid URL
+    }
+}
