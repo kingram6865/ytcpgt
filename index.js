@@ -4,6 +4,7 @@ import { channelExists, getChannel, addChannel, addVideoBatch } from "./db/sqlLi
 import { closePool } from "./db/connection.js";
 import { formatPublishedDate, gatherChannelDataForArchival, gatherVideoDataForArchival, deduplicateWithPriority } from "./utilities/tools.js";
 import { enrichVideosWithYouTubeData } from "./youtube/enrichVideoData.js";
+import { createVideoCollectionReport } from "./utilities/videoCollectionReport.js";
 import chalk from "chalk";
 
 const source = 55;
@@ -12,6 +13,7 @@ let channel = process.argv[2];
 let channelApiData, apiChannelId, channelobjid, apiChannelData
 
 async function main() {
+  const report = createVideoCollectionReport();
   const lz = new FileManager('./data');
   let channelDbData, playlists, chanName
   let allPlaylistItems = []
@@ -61,16 +63,38 @@ async function main() {
     console.log(`${id} ${published} (${childrenCount}) ${title}`)
 
     items?.forEach(item => {
-      if (item.status.privacyStatus !== "private") {
-        const archivalItem = gatherVideoDataForArchival(item, channelobjid, playlists[i].snippet.title);
+      const playlistContext = {
+        playlistId: playlists[i].id,
+        playlistTitle: playlists[i].snippet.title,
+      };
 
-        if (!archivalItem?.videoId) {
-          console.log(chalk.ansi256(196)(`Skipping item with missing videoId: ${item?.snippet?.title}`));
-          return;
-        }
+      const privacyStatus = item?.status?.privacyStatus;
 
-        allPlaylistItems.push(archivalItem);
+      // if (privacyStatus !== "private") {
+      //   report.addSkippedItem("private", item, {
+      //     playlistId: playlists[i].id,
+      //     playlistTitle: playlists[i].snippet.title,
+      //   });
+
+      //   return;
+      // }
+
+      const archivalItem = gatherVideoDataForArchival(
+        item,
+        channelobjid,
+        playlists[i].snippet.title
+      );
+
+      if (!archivalItem?.videoId) {
+        report.addSkippedItem("missing-videoId", item, playlistContext)
+        return;
       }
+
+      if (privacyStatus === "private") {
+        report.addSkippedItem("private-but-has-videoId", item, playlistContext);
+      }
+
+      allPlaylistItems.push(archivalItem);
     })
   }
 
@@ -84,6 +108,13 @@ async function main() {
   enrichedData.sort((a, b) => (a.sequence > b.sequence) ? 1 : (a.sequence < b.sequence) ? -1 : 0)
   lz.writeJSON(`videos.json`, enrichedData, true, dirName)
   console.log(`${chalk.ansi256(226)(allPlaylistItems.length)} playlist items from ${chalk.ansi256(226)(playlists.length)} playlists with ${enrichedData.length} deduplicated items saved to ${chalk.ansi256(190)(`${dirName}/videos.json`)}`)
+
+  if (report.hasSkippedItems()) {
+    lz.writeJSON("skipped-items.json", report.getSkippedItems(), true, dirName);
+    lz.writeJSON("skipped-summary.json", report.getSummary(), true, dirName);
+
+    console.log("Skipped item summary:", report.getSummary());
+  }
 
   const final = await closePool(source, database)
 }
