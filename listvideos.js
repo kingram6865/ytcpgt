@@ -1,6 +1,7 @@
 import path from "node:path";
 import { formatPublishedDate, formatDuration } from "./utilities/tools.js";
 import { FileManager } from "./lib/fileManager.js";
+import chalk from 'chalk';
 
 const fm = new FileManager()
 
@@ -58,23 +59,19 @@ data.forEach((element, index) => {
 
   try {
     if (element.duration) {
-      durationDisplay = formatDuration(element.duration).display;
+      durationDisplay = chalk.ansi256(120)(formatDuration(element.duration).display);
     }
   } catch (err) {
-    console.error(
-      `Invalid duration at index ${index}:`,
-      element.duration,
-      element.url
-    );
+    console.error(`Invalid duration at index ${index}:`, element.duration, element.url);
   }
 
   // console.log(element.url, formatPublishedDate(element.published), formatDuration(element.duration).display, element.title)
   console.log(
-    element.url,
-    formatPublishedDate(element.published),
-    durationDisplay,
-    element.title
+    chalk.ansi256(227)(formatPublishedDate(element.published)),
+    chalk.ansi256(33)(element.url),
+    `[${durationDisplay}] ${chalk.ansi256(69)(element.title)}`
   );
 
-  console.log(`Total videos: ${data.length}`);
 });
+
+console.log(`===>\t[Total videos: ${data.length}]`);
