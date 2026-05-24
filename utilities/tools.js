@@ -144,6 +144,22 @@ export function deduplicateWithPriority(array, keyField) {
 
       if (!existing || itemScore > existingScore) {
         // console.log('tools.js Line 113: ', item.playlistTitle, item.playlistid)
+
+if (key === "3qzpLU8ATQQ") {
+  console.log("TRACE DEDUPE:", {
+    key,
+    itemTitle: item.title,
+    itemPlaylistTitle: item.playlistTitle,
+    itemPlaylistId: item.playlistid,
+    itemScore,
+    existingTitle: existing?.title,
+    existingPlaylistTitle: existing?.playlistTitle,
+    existingPlaylistId: existing?.playlistid,
+    existingScore,
+    willReplace: !existing || itemScore > existingScore,
+  });
+}
+
         map.set(key, item);
       }
 

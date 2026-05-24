@@ -52,14 +52,6 @@ async function main() {
   for (let i = 0; i < playlists.length; i++) {
     const items = await playlistItems(playlists[i].id);
 
-    // if (items?.[0]) {
-    //   console.log("RAW PLAYLIST ITEM SAMPLE:");
-    //   console.dir(items[0], { depth: null });
-    //   process.exit(0);
-    // }
-
-
-
     let id = chalk.ansi256(33)(`[${i.toString().padStart(3, ' ')}]`, playlists[i].id.padStart(35, ' '));
     let title = chalk.ansi256(118)(playlists[i].snippet.title);
     // let childrenCount = chalk.ansi256(226)(playlists[i].contentDetails?.itemCount.toString().padStart(3, ' '));
@@ -71,6 +63,22 @@ async function main() {
     console.log(`${id} ${published} (${childrenCount}) ${title}`)
 
     items?.forEach(item => {
+      const currentVideoId = item?.snippet?.resourceId?.videoId ??
+        item?.contentDetails?.videoId ??
+        null;
+
+      if (currentVideoId === "3qzpLU8ATQQ") {
+        console.log("FOUND RAW VIDEO:", {
+          title: item?.snippet?.title,
+          privacyStatus: item?.status?.privacyStatus,
+          playlist: playlists[i].snippet.title,
+          playlistId: playlists[i].id,
+        });
+      }
+
+
+
+
       if (item.status.privacyStatus !== "private") {
         // if (item.snippet.title.match('Leslie')) {
         //   console.log("\t", `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`, item.snippet.title, `[${item.status.privacyStatus}]`)
@@ -96,11 +104,37 @@ async function main() {
     // console.log(results);
   }
 
+const existsAnywhere = allPlaylistItems.some(
+  item => item.videoId === "3qzpLU8ATQQ"
+);
+
+console.log("VIDEO EXISTS ANYWHERE:", existsAnywhere);
+
+
   allPlaylistItems.sort((a, b) => (a.published > b.published) ? 1 : (a.published < b.published) ? -1 : 0)
 
+  const traceVideoId = "3qzpLU8ATQQ";
+
+  console.log("TRACE before dedupe:", allPlaylistItems.filter(
+    item => item.videoId === traceVideoId
+  ));
+
+
   const dedupedResults = deduplicateWithPriority(allPlaylistItems, "videoId")
+
+  console.log("TRACE after dedupe:", dedupedResults.filter(
+    item => item.videoId === traceVideoId
+  ));
+
+
   console.log(`# of Items after sort: ${allPlaylistItems.length}\n# of Items after deduplicate ${dedupedResults.length}`)
   const enrichedData = await enrichVideosWithYouTubeData(dedupedResults);
+
+  console.log("TRACE after enrich:", enrichedData.filter(
+    item => item.videoId === traceVideoId
+  ));
+
+
   enrichedData.sort((a, b) => (a.sequence > b.sequence) ? 1 : (a.sequence < b.sequence) ? -1 : 0)
   lz.writeJSON(`videos.json`, enrichedData, true, dirName)
   console.log(`${chalk.ansi256(226)(allPlaylistItems.length)} playlist items from ${chalk.ansi256(226)(playlists.length)} playlists with ${enrichedData.length} deduplicated items saved to ${chalk.ansi256(190)(`${dirName}/videos.json`)}`)
