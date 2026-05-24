@@ -50,12 +50,11 @@ export async function playlistItems(id) {
   const url = `${API}playlistItems?${params}`
 
   try {
-    // console.log(`Retrieving playlist ${id} page ${i}`)
     results = await axios.get(url)
-    // videoList = [...videoList, ...results.data.items] // Need to exclude status.privacyStatus = 'private'
-    videoList.push(
-      ...results.data.items.filter(item => item?.status?.privacyStatus !== 'private')
-    );
+
+    // Return ALL playlist items.
+    // Move filtering/reporting decisions to index.js.
+    videoList.push(...results.data.items);
 
     let nextpage = results.data.nextPageToken
     while (nextpage) {
@@ -67,21 +66,17 @@ export async function playlistItems(id) {
         key: APIKEY,
         pageToken: nextpage
       })
+
       let nextPageUrl = `${API}playlistItems?${newParams.toString()}`
-      // console.log(`Retrieving playlist ${id} page ${i}`)
       let newResults = await axios.get(nextPageUrl)
-      // videoList.push(...newResults.data.items) // Need to exclude status.privacyStatus = 'private'
-      videoList.push(
-        // ...newResults.data.items.filter(item => item?.status?.privacyStatus !== 'private')
-        ...newResults.data.items
-      );
+
+      videoList.push(...newResults.data.items);
       nextpage = newResults.data.nextPageToken
     }
   } catch (err) {
     console.error('Failed to fetch playlist items: \n', err.message, JSON.stringify(err.response?.data, null, 2));
   }
 
-  // videoList.sort((a,b) => (a.snippet.publishedAt > b.snippet.publishedAt) ? 1 : (a.snippet.publishedAt < b.snippet.publishedAt) ? -1 : 0)
   return videoList;
 }
 
@@ -126,7 +121,6 @@ export async function channelPlaylists(id) {
     playlists = [ ...playlists, ...results.data.items]
     pageToken = results.data.nextPageToken ?? null;
     i++;
-    // console.log(i, results.data.items.length)
 
   } while (pageToken);
 
@@ -170,22 +164,8 @@ export async function getChannelUploads(channel) {
 
     pageToken = results.data.nextPageToken ?? null;
     i++;
-    // console.log(Object.keys(results.data.items[0]))
-
-    // This was checking channel Drawing Down the Dragon
-    // which revealed that the Uploads channel lists ALL videos.
-    // This suggests that downloading playlists for all channels is marginally useful
-    // Playlists matter when videos are grouped into playlists. Otherwise not useful.
-    // results.data.items.forEach(item => {
-    //   if (item.snippet.title.match(/Leslie/)) {
-    //     console.log(item.snippet.publishedAt, item.snippet.title, item.contentDetails)
-    //   }
-    // })
-    // console.log(i, results.data.items.length)
-    // console.log(url)
   } while (pageToken);
 
-  // console.log(playlists)
   return playlists;
 }
 
@@ -205,8 +185,6 @@ export async function fetchVideoDetails(videoIds) {
   }
 
   const data = await response.json();
-
-  // Create mapping: videoId -> { tags, duration }
   const result = {};
 
   if (data.items && Array.isArray(data.items)) {
