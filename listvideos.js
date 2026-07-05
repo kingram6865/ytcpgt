@@ -1,8 +1,11 @@
 import path from "node:path";
 import { formatPublishedDate, formatDuration } from "./utilities/tools.js";
 import { FileManager } from "./lib/fileManager.js";
+import { getChannelOwner } from "./db/sqlLibrary.js";
 import chalk from 'chalk';
 
+const source = 55;
+const database = 'random_facts';
 const fm = new FileManager()
 
 /*
@@ -11,7 +14,7 @@ const fm = new FileManager()
     where name can be
       "<Channel Name>"
       "<directory name>"
-      @custom url
+      @custom url ==> This has to check the database and return owner_name
       path/to/videos.json
 
   Automatically reads: data/<name>/videos.json
@@ -21,13 +24,20 @@ const fm = new FileManager()
 
 function normalizeChannelDirectoryName(channelName) {
   return channelName
-    .replace(/^@/, "")
     .replace(/\./g, "")
     .replace(/\s+/g, "_")
     .replace(/[^a-zA-Z0-9_-]/g, "");
 }
 
 const input = process.argv[2];
+
+if (input.includes("@")) {
+  const channel = await getChannelOwner(input, source, database);
+
+  console.log("Create function to get owner_name from database.", channel)
+  process.exit(0);
+}
+
 
 if (!input) {
   console.error("Usage:");
