@@ -10,11 +10,11 @@ export async function videoExists(videoid, dbsrc, db) {
   let exists = false
   let sql = `SELECT * FROM youtube_downloads WHERE videoid = '${videoid}'`;
   let results = await executeSQL(sql, dbsrc, db)
-  
+
   if (results.success && results.data && results.data.length > 0) {
     exists = true;
   }
-  
+
   results = {...results, exists};
   return results;
 }
@@ -36,6 +36,19 @@ export async function getChannel(channelid, dbsrc, db) {
   const sql = `SELECT * FROM youtube_channel_owners WHERE channel_id = '${channelid}'`
   let results = await executeSQL(sql, dbsrc, db)
   return results.data[0]
+}
+
+export const getChannelOwner = async (customUrl, dbsrc, db) => {
+  const data = [`%${customUrl}%`];
+  let sql = "SELECT owner_name FROM youtube_channel_owners WHERE custom_url LIKE ?"
+  sql = formatSQL(sql, data);
+
+  try {
+    const result = await executeSQL(sql, dbsrc, db)
+    return result;
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 export async function getVideo(id, dbsrc, db) {
@@ -73,7 +86,7 @@ export async function addVideoBatch(dataArray, dbsrc, db) {
     INSERT INTO youtube_downloads
       (keywords, upload_date, caption, description, play_length, url, channel_owner_id, thumbnail, status, rewatch, sequence, playlistid)
     VALUES ${valuesSql}`;
-  
+
   for (const data of dataArray) {
     const keywords = Array.isArray(data?.keywords) ? data.keywords.join(',') : (data?.keywords ?? '');
     params.push(
