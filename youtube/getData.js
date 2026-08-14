@@ -198,3 +198,21 @@ export async function fetchVideoDetails(videoIds) {
 
   return result;
 }
+
+export async function playlistData(id) {
+  const params = new URLSearchParams({
+    part: 'snippet,contentDetails,status',
+    id,
+    key: APIKEY
+  });
+
+  const url = `${API}playlists?${params.toString()}`;
+
+  try {
+    const results = await axios.get(url);
+    return results.data;
+  } catch (err) {
+    console.error('Failed to fetch playlistData:', err.message, err.response?.data);
+    return { items: [] };
+  }
+}
