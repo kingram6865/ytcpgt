@@ -51,11 +51,11 @@ content:
 MYSQLHOST=<mysql server name or ip address>
 MYSQLPORT=<mysql connection port>
 MYSQLUSER=<user who will have admin access to database>
-MYSQLPWD<database password>
+MYSQLPWD=<database password>
 
 ## Youtube key associated with Google Cloud account <xxx@gmail.com>
-API_KEY1 = <APIKEY>
-API_KEY2 = <APIKEY>
+API_KEY1 = <APIKEY1>
+API_KEY2 = <APIKEY2>
 
 ```
 
@@ -76,11 +76,11 @@ or channel videos are not necessarily desired for archival.
 In a shell environment (typically BASH on Linux. This should work fine on any system that can run Node.js
 and npm. I recommend Bash for Windows or Cygwin for Windows machines).
 
-- > npm run start https://www.youtube.com/channel/UChwlUA0A8d2A7_UiKIqdNjw
-- > npm run start UChwlUA0A8d2A7_UiKIqdNjw
-- > npm run start http://www.youtube.com/@retronate 
-- > npm run start @retronate 
-- > npm run start https://www.youtube.com/playlist?list=PLD9Ow2Roi9awZ-sisppnjAA3HmDqxcSpd
-- > npm run start PLD9Ow2Roi9awZ-sisppnjAA3HmDqxcSpd
+- npm run start https://www.youtube.com/channel/UChwlUA0A8d2A7_UiKIqdNjw
+- npm run start UChwlUA0A8d2A7_UiKIqdNjw
+- npm run start http://www.youtube.com/@retronate 
+- npm run start @retronate 
+- npm run start https://www.youtube.com/playlist?list=PLD9Ow2Roi9awZ-sisppnjAA3HmDqxcSpd
+- npm run start PLD9Ow2Roi9awZ-sisppnjAA3HmDqxcSpd
 
 The progress is output to the screen. The final destination of the output is data/<canonical channel name>/videos.json
