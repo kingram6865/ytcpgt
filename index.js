@@ -7,6 +7,10 @@ import { archivePlaylist } from './lib/archivePlaylist.js';
 const source = 55;
 const database = 'random_facts';
 
+function reportProgress(message) {
+  console.log(`[progress] ${message}`);
+}
+
 function printUsage() {
   console.error('Usage:');
   console.error('  npm run start -- <channel-id>');
@@ -26,18 +30,19 @@ async function main() {
   }
 
   if (input.type === 'playlist') {
-    await archivePlaylist(input.playlistId, { source, database });
+    await archivePlaylist(input.playlistId, { source, database, onProgress: reportProgress });
     return;
   }
 
   if (input.type === 'channel-handle') {
+    reportProgress(`Resolving channel handle ${input.handle}...`);
     const channelId = await getChannelId(input.handle);
-    await archiveChannel(channelId, { source, database });
+    await archiveChannel(channelId, { source, database, onProgress: reportProgress });
     return;
   }
 
   if (input.type === 'channel') {
-    await archiveChannel(input.channelId, { source, database });
+    await archiveChannel(input.channelId, { source, database, onProgress: reportProgress });
     return;
   }
 
