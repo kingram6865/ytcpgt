@@ -102,10 +102,11 @@ export async function executeSQL(sql, dbsrc, db, params = undefined) {
     const queryArgs = (params && params.length) ? [sql, params] : [sql];
 
     const [rows] = await connection.query(...queryArgs);
+    const rowCount = Array.isArray(rows) ? rows.length : (rows.affectedRows ?? 0);
 
     const insertId = rows.insertId ?? null;
     // console.log(`[DEBUG] Query successful, rows: ${(rows?.length > 0) ? rows.length : JSON.stringify(rows, null, 2)}`);
-    return { success: true, rowCount: rows.length, data: rows, insertId };
+    return { success: true, rowCount, data: rows, insertId };
   } catch (err) {
     // console.error(`[DEBUG] Query failed:`, err.message);
     if (err.sqlState === '45000') {
