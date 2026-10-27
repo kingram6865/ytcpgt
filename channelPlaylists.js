@@ -32,22 +32,23 @@ async function getChannelPlaylists(id) {
 }
 
 async function getVideoInfo(input) {
-  result = await videoData(input)
-    output = {
-      publishedAt: formatPublishedDate(result.items[0].snippet.publishedAt),
-      channelId: result.items[0].snippet.channelId,
-      title: result.items[0].snippet.title,
-      description: result.items[0].snippet.description,
-      thumbnails: result.items[0].snippet.thumbnails,
-      channelTitle:  result.items[0].snippet.channelTitle,
-      tags:  result.items[0].snippet.tags.join(","),
-      duration: formatDuration(result.items[0].contentDetails.duration),
-      views: result.items[0].statistics.viewCount,
-      comments: result.items[0].statistics.commentCount
-    }
+  const result = await videoData(input);
+  if (!result?.items?.length) throw new Error(`No accessible video found for ID: ${input}`);
+  const output = {
+    publishedAt: formatPublishedDate(result.items[0].snippet.publishedAt),
+    channelId: result.items[0].snippet.channelId,
+    title: result.items[0].snippet.title,
+    description: result.items[0].snippet.description,
+    thumbnails: result.items[0].snippet.thumbnails,
+    channelTitle: result.items[0].snippet.channelTitle,
+    tags: (result.items[0].snippet.tags ?? []).join(","),
+    duration: formatDuration(result.items[0].contentDetails.duration),
+    views: result.items[0].statistics.viewCount,
+    comments: result.items[0].statistics.commentCount
+  }
 
-    console.log(output.duration, output.publishedAt, output.title)
-    return output;
+  console.log(output.duration, output.publishedAt, output.title)
+  return output;
 }
 
 async function getPlaylistItems(id) {
@@ -58,11 +59,11 @@ async function getPlaylistItems(id) {
 async function gatherAllPlaylistItems(listOfPlaylists) {
   const batchSize = 50;
   const waitMs = 600;
-  
+
   // Map videoId -> best occurrence (newest playlist-added date)
   const bestOccByVideoId = new Map();
   let itemCount = 0;
-  
+
   // 1) Collect playlist occurrences, keep only the newest per videoId
   for (const playlist of listOfPlaylists) {
     const allItems = await getPlaylistItems(playlist.id);
@@ -161,7 +162,7 @@ async function gatherAllPlaylistItems(listOfPlaylists) {
       await sleep(waitMs);
     }
   }
-  
+
   return {
     playlistCount: listOfPlaylists.length,
     itemCount,
@@ -182,6 +183,8 @@ async function execute(input) {
   let message = chalk.ansi256(86)("Retrieving data for")
   let dirName, test, urlType, result, output
   urlType = parseYouTubeUrl(input);
+  if (!urlType) throw new Error(`Unsupported or incomplete YouTube URL: ${input ?? "(no input)"}`);
+
   if (urlType.type === 'video') {
     console.log(`${message} ${chalk.ansi256(214)("video Id:")} ${chalk.ansi256(184)(urlType.videoId)}`)
     const videoInfo = await getVideoInfo(urlType.videoId);
@@ -195,16 +198,17 @@ async function execute(input) {
 
     const listOfPlaylists = await getChannelPlaylists(channelid)
     const allPlaylistsData = await gatherAllPlaylistItems(listOfPlaylists);
-    let dirName = listOfPlaylists[0].snippet.channelTitle.replace(/\./g, '').replace(/\s+/g, '_');
+    const channelTitle = listOfPlaylists[0]?.snippet?.channelTitle ?? channelid;
+    const dirName = channelTitle.replaceAll('/', '_').replaceAll('\\', '_').replace(/[<>:"|?*\u0000-\u001F]/g, '_').replace(/\./g, '').replace(/\s+/g, '_').replace(/^_+|_+$/g, '') || channelid;
 
     console.log(`Data for a total of ${chalk.ansi256(77)(allPlaylistsData.allChannelVideos.length)} youtube videos retrieved.`)
     console.log(
-      `There are ${allPlaylistsData.playlistCount} playlists consisting of`, 
+      `There are ${allPlaylistsData.playlistCount} playlists consisting of`,
       `${allPlaylistsData.itemCount} total videoIds. There are`,
       `${allPlaylistsData.uniqueVideoCount} unique videoIds meaning`,
-      `${allPlaylistsData.playlistCount - allPlaylistsData.uniqueVideoCount} were repeated across the playlists.`
+      `${allPlaylistsData.itemCount - allPlaylistsData.uniqueVideoCount} were repeated across the playlists.`
     );
-    
+
     listOfPlaylists.forEach(playlist => {
       console.log(
         `Playlist ${chalk.ansi256(77)(playlist.id)}`,
@@ -214,7 +218,7 @@ async function execute(input) {
     });
 
     console.log(chalk.ansi256(99)(`Results saved to`), `${chalk.ansi256(55)("./data/" + dirName + "/videos.json")}`)
-    lz.writeJSON(`videos.json`, allPlaylistsData, true, dirName)
+    await lz.writeJSON(`videos.json`, allPlaylistsData, true, dirName);
 
   } else if (urlType.type === 'playlist') {
     console.log(`${message} ${chalk.ansi256(214)("playlist Id:")} ${chalk.ansi256(184)(urlType.playlistId)}`)
@@ -226,7 +230,7 @@ async function execute(input) {
   } else if (urlType.type === 'video-playlist') {
     console.log(`${message} ${chalk.ansi256(220)("playlist Id:")} ${chalk.ansi256(77)(urlType.playlistId)} videoId: ${urlType.videoId}, Position ${urlType.index}`)
     const allPlaylistsData = await gatherAllPlaylistItems([{id: urlType.playlistId}]);
-    console.log(allPlaylistsData) 
+    console.log(allPlaylistsData)
   }
 
   // const getVideoInfo = await videoData(input)
