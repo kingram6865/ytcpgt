@@ -8,8 +8,8 @@ export async function listTables(dbsrc, db) {
 
 export async function videoExists(videoid, dbsrc, db) {
   let exists = false
-  let sql = `SELECT * FROM youtube_downloads WHERE videoid = '${videoid}'`;
-  let results = await executeSQL(sql, dbsrc, db)
+  let sql = `SELECT * FROM youtube_downloads WHERE videoid = ?`;
+  let results = await executeSQL(sql, dbsrc, db, [videoid])
 
   if (results.success && results.data && results.data.length > 0) {
     exists = true;
@@ -21,8 +21,8 @@ export async function videoExists(videoid, dbsrc, db) {
 
 export async function channelExists(channelid, dbsrc, db) {
   let exists = false;
-  let sql = `SELECT * FROM youtube_channel_owners WHERE channel_id = '${channelid}'`;
-  let results = await executeSQL(sql, dbsrc, db);
+  let sql = `SELECT * FROM youtube_channel_owners WHERE channel_id = ?`;
+  let results = await executeSQL(sql, dbsrc, db, [channelid]);
 
   if (results.success && results.data && results.data.length > 0) {
     exists = true;
@@ -33,8 +33,8 @@ export async function channelExists(channelid, dbsrc, db) {
 }
 
 export async function getChannel(channelid, dbsrc, db) {
-  const sql = `SELECT * FROM youtube_channel_owners WHERE channel_id = '${channelid}'`
-  let results = await executeSQL(sql, dbsrc, db)
+  const sql = `SELECT * FROM youtube_channel_owners WHERE channel_id = ?`
+  let results = await executeSQL(sql, dbsrc, db, [channelid])
   return results.data[0]
 }
 
@@ -52,14 +52,15 @@ export const getChannelOwner = async (customUrl, dbsrc, db) => {
 }
 
 export async function getVideo(id, dbsrc, db) {
-  const sql = `SELECT * FROM youtube_downloads WHERE videoid = '${id}'`;
-  let results = await executeSQL(sql, dbsrc, db);
+  const sql = `SELECT * FROM youtube_downloads WHERE videoid = ?`;
+  let results = await executeSQL(sql, dbsrc, db, [id]);
   return results.data
 }
 
 export async function addChannel(data, dbsrc, db) {
   let values = [data.title, data.channelId, data.description, data.created, data.views, data.thumbnail, data.customUrl]
-  let sql = `INSERT INTO youtube_channel_owners (owner_name, channel_id, description, joined, views, thumbnail_link, custom_url) VALUES (?, ?, ?, str_to_date(?, '%Y-%m-%d %H:%i:%s'), ?, ?, ?)`;
+  // let sql = `INSERT INTO youtube_channel_owners (owner_name, channel_id, description, joined, views, thumbnail_link, custom_url) VALUES (?, ?, ?, str_to_date(?, '%Y-%m-%d %H:%i:%s'), ?, ?, ?)`;
+  let sql = `INSERT INTO youtube_channel_owners (owner_name, channel_id, description, joined, views, thumbnail_link, custom_url) VALUES (?, ?, ?, str_to_date(?, '%Y-%m-%dT%H:%i:%sZ'), ?, ?, ?)`; // CHANGED: parse YouTube's ISO 8601 timestamp, including its literal T and Z.
   sql = formatSQL(sql, values)
 
   const results = await executeSQL(sql, dbsrc, db);
@@ -67,10 +68,10 @@ export async function addChannel(data, dbsrc, db) {
 }
 
 export async function addVideo(data, channelid, dbsrc, db) {
-  let keywords = (data.keywords) ? data.keywords.join(",") : ""
+  const keywords = Array.isArray(data?.keywords) ? data.keywords.join(',') : (data?.keywords ?? '');
   let values = [keywords, data.published, data.title, data.description, data.duration, data.url, channelid, JSON.stringify(data.thumbnails), data.sequence, data.playlistid]
   let sql = `INSERT INTO youtube_downloads (keywords, upload_date, caption, description, play_length, url, channel_owner_id, thumbnail, status, rewatch, sequence, playlistid) \
-  VALUES (?, date_format(?, '%Y-%m-%d %r'), ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)`;
+  VALUES (?, date_format(str_to_date(?, '%Y-%m-%dT%H:%i:%sZ'), '%Y-%m-%d %r'), ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)`;
   sql = formatSQL(sql, values)
 
   let results = await executeSQL(sql, dbsrc, db);
@@ -79,7 +80,7 @@ export async function addVideo(data, channelid, dbsrc, db) {
 
 export async function addVideoBatch(dataArray, dbsrc, db) {
   const params = [];
-  const rowSql = `(?, date_format(?, '%Y-%m-%d %r'), ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)`;
+  const rowSql = `(?, date_format(str_to_date(?, '%Y-%m-%dT%H:%i:%sZ'), '%Y-%m-%d %r'), ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)`;
   const valuesSql = dataArray.map(() => rowSql).join(', ');
 
   const sql = `
@@ -110,8 +111,8 @@ export async function addVideoBatch(dataArray, dbsrc, db) {
 
 export async function ensureChannelObjid(channelId, channelInsertData, dbsrc, db) {
   // 1) Try fetch existing
-  let existingSQL = `SELECT objid FROM youtube_channel_owners WHERE channel_id = ${channelId} LIMIT 1`
-  const sel = await executeSQL(existingSQL, dbsrc, db);
+  let existingSQL = `SELECT objid FROM youtube_channel_owners WHERE channel_id = ? LIMIT 1`
+  const sel = await executeSQL(existingSQL, dbsrc, db, [channelId]);
   if (sel.rowCount > 0) return sel.data[0].objid;
 
   // 2) Insert, return insertId
