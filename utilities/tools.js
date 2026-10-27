@@ -32,14 +32,17 @@ export function formatDuration(input){
 }
 
 export function formatPublishedDate(data) {
-  const date = new Date(data)
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
+  const normalizedData = typeof data === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(data)
+    ? `${data.replace(' ', 'T')}Z`
+    : data;
+  const date = new Date(normalizedData)
+  const year = date.getUTCFullYear();
+  const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+  const day = date.getUTCDate().toString().padStart(2, '0');
 
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  const seconds = date.getSeconds().toString().padStart(2, '0');
+  const hours = date.getUTCHours().toString().padStart(2, '0');
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+  const seconds = date.getUTCSeconds().toString().padStart(2, '0');
 
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
@@ -84,7 +87,8 @@ export function gatherVideoDataForArchival(data, chanId, playlistTitle) {
 
   const result = {
       keywords: null,
-      published: formatPublishedDate(data?.snippet.publishedAt) ?? null,
+      published: data?.contentDetails?.videoPublishedAt ? formatPublishedDate(data.contentDetails.videoPublishedAt) : null,
+      playlistAddedAt: data?.snippet?.publishedAt ? formatPublishedDate(data.snippet.publishedAt) : null,
       title: data?.snippet.title ?? null,
       description: data?.snippet.description ?? null,
       duration: null,
@@ -119,16 +123,20 @@ export function toTime (iso) {
 };
 
 const getPriorityScore = (item) => {
-  const priorityRules = [
-    { condition: (item) => item.playlistid && !item.playlistid.startsWith('UU'), priority: 3 },
-    { condition: (item) => !item.playlistid?.startsWith('UU'), priority: 2 },
-    { condition: (item) => !item.playlistid, priority: 1 },
-  ];
+  const playlistId = item?.playlistid ?? '';
+  if (!playlistId) return 1;
+  if (playlistId.startsWith('UU')) return 2;
+  return 3;
+  // const priorityRules = [
+  //   { condition: (item) => item.playlistid && !item.playlistid.startsWith('UU'), priority: 3 },
+  //   { condition: (item) => !item.playlistid?.startsWith('UU'), priority: 2 },
+  //   { condition: (item) => !item.playlistid, priority: 1 },
+  // ];
 
-  for (const rule of priorityRules) {
-    if (rule.condition(item)) return rule.priority;
-  }
-  return 0;
+  // for (const rule of priorityRules) {
+  //   if (rule.condition(item)) return rule.priority;
+  // }
+  // return 0;
 };
 
 export function deduplicateWithPriority(array, keyField) {
@@ -145,20 +153,20 @@ export function deduplicateWithPriority(array, keyField) {
       if (!existing || itemScore > existingScore) {
         // console.log('tools.js Line 113: ', item.playlistTitle, item.playlistid)
 
-if (key === "3qzpLU8ATQQ") {
-  console.log("TRACE DEDUPE:", {
-    key,
-    itemTitle: item.title,
-    itemPlaylistTitle: item.playlistTitle,
-    itemPlaylistId: item.playlistid,
-    itemScore,
-    existingTitle: existing?.title,
-    existingPlaylistTitle: existing?.playlistTitle,
-    existingPlaylistId: existing?.playlistid,
-    existingScore,
-    willReplace: !existing || itemScore > existingScore,
-  });
-}
+// if (key === "3qzpLU8ATQQ") {
+//   console.log("TRACE DEDUPE:", {
+//     key,
+//     itemTitle: item.title,
+//     itemPlaylistTitle: item.playlistTitle,
+//     itemPlaylistId: item.playlistid,
+//     itemScore,
+//     existingTitle: existing?.title,
+//     existingPlaylistTitle: existing?.playlistTitle,
+//     existingPlaylistId: existing?.playlistid,
+//     existingScore,
+//     willReplace: !existing || itemScore > existingScore,
+//   });
+// }
 
         map.set(key, item);
       }
