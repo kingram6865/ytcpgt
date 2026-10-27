@@ -2,6 +2,7 @@ import path from "node:path";
 import { formatPublishedDate, formatDuration } from "./utilities/tools.js";
 import { FileManager } from "./lib/fileManager.js";
 import { getChannelOwner } from "./db/sqlLibrary.js";
+import { normalizeArchiveDirectoryName } from "./lib/archiveNames.js";
 import chalk from 'chalk';
 
 const source = 55;
@@ -23,18 +24,15 @@ const fm = new FileManager()
 */
 
 function normalizeChannelDirectoryName(channelName) {
-  return channelName
-    .replace(/\./g, "")
-    .replace(/\s+/g, "_")
-    .replace(/[^a-zA-Z0-9_-]/g, "");
+  return normalizeArchiveDirectoryName(channelName);
 }
 
 const input = process.argv[2];
 
-if (input.includes("@")) {
+if (input?.includes("@")) {
   const channel = await getChannelOwner(input, source, database);
 
-  console.log("Create function to get owner_name from database.", channel)
+  console.log("Create function to get owner_name from database.", channel);
   process.exit(0);
 }
 
@@ -75,7 +73,6 @@ data.forEach((element, index) => {
     console.error(`Invalid duration at index ${index}:`, element.duration, element.url);
   }
 
-  // console.log(element.url, formatPublishedDate(element.published), formatDuration(element.duration).display, element.title)
   console.log(
     chalk.ansi256(227)(formatPublishedDate(element.published)),
     chalk.ansi256(33)(element.url),
