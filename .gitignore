@@ -5,3 +5,4 @@ temp.txt
 temp/
 data/
 logs/
+*.dump
