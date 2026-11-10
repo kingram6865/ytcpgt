@@ -1,4 +1,4 @@
-const PLAYLIST_ID_PATTERN = /^(PL|UU|LL|FL|RD|OLAK5uy_)[A-Za-z0-9_-]+$/;
+const PLAYLIST_ID_PATTERN = /^[A-Za-z0-9_-]{10,}$/;
 const CHANNEL_ID_PATTERN = /^UC[A-Za-z0-9_-]{20,}$/;
 
 function parseYouTubeWebUrl(value) {
@@ -23,12 +23,15 @@ export function extractPlaylistId(input) {
   const value = normalizeCliInput(input);
   if (!value) return null;
 
-  if (PLAYLIST_ID_PATTERN.test(value)) return value;
-
   const url = parseYouTubeWebUrl(value);
-  // return url?.searchParams.get('list') || null;
-  const playlistId = url?.searchParams.get('list');
-  return PLAYLIST_ID_PATTERN.test(playlistId ?? '') ? playlistId : null;
+
+  if (url) {
+    const playlistId = url.searchParams.get('list');
+    return PLAYLIST_ID_PATTERN.test(playlistId ?? '') ? playlistId : null;
+  }
+
+  if (CHANNEL_ID_PATTERN.test(value)) return null;
+  return PLAYLIST_ID_PATTERN.test(value) ? value : null;
 }
 
 export function extractChannelId(input) {
@@ -69,7 +72,14 @@ export function resolveStartInput(input) {
 
   const playlistId = extractPlaylistId(value);
   if (playlistId) {
-    return { type: 'playlist', playlistId, value };
+    const playlistUrl = parseYouTubeWebUrl(value);
+
+    return {
+      type: 'playlist',
+      playlistId,
+      value,
+      sourceUrl: playlistUrl ? value : null,
+    };
   }
 
   const handle = extractHandle(value);
