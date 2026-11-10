@@ -18,6 +18,7 @@ function printUsage() {
   console.error('  npm run start -- @handle');
   console.error('  npm run start -- <playlist-id>');
   console.error('  npm run start -- "https://www.youtube.com/playlist?list=<playlist-id>"');
+  console.error('  npm run start -- "https://www.youtube.com/watch?v=<video-id>&list=<playlist-id>"');
 }
 
 async function main() {
@@ -30,7 +31,12 @@ async function main() {
   }
 
   if (input.type === 'playlist') {
-    await archivePlaylist(input.playlistId, { source, database, onProgress: reportProgress });
+    await archivePlaylist(input.playlistId, {
+        source,
+        database,
+        onProgress: reportProgress,
+        sourceUrl: input.sourceUrl,
+      });
     return;
   }
 
