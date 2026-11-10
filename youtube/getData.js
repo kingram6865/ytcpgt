@@ -82,8 +82,8 @@ export async function playlistItems(id, onProgress = null) {
       let newResults = await axios.get(nextPageUrl)
 
       const pageItems = newResults.data.items ?? [];
-      videoList.push(...newResults.data.items);
-      onProgress?.(`Playlist ${id}: fetched ${videoList.length} items total (${pageItems.length} on (page ${i}).`);
+      videoList.push(...pageItems);
+      onProgress?.(`Playlist ${id}: fetched ${videoList.length} items total (${pageItems.length} on page ${i}).`);
       nextpage = newResults.data.nextPageToken ?? null;
     }
   } catch (err) {
@@ -163,7 +163,7 @@ export async function getChannelUploads(channel, onProgress = null) {
   const channelInfo = await channelData(channel);
   const playlistId = channelInfo?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
   if (!playlistId) {
-    throw new Error(`Uploads playlist not found for channel: ${channel}`); // fail clearly if the channel response has no uploads playlist.
+    throw new Error(`Uploads playlist not found for channel: ${channel}`);
   }
 
   const playlistItems = [];
@@ -187,7 +187,7 @@ export async function getChannelUploads(channel, onProgress = null) {
 
     pageToken = results.data.nextPageToken ?? null;
     page++;
-    onProgress?.(`Uploads playlist ${playlistId}: fetched ${playlistItems.length} items so far (page ${page}).`); // report successful completion of each uploads page.
+    onProgress?.(`Uploads playlist ${playlistId}: fetched ${playlistItems.length} items so far (page ${page}).`);
     pageToken = results.data.nextPageToken ?? null;
   } while (pageToken);
 
